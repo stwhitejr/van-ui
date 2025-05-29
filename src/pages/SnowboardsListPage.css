@@ -1,0 +1,21 @@
+.SnowboardList {
+  border: solid 1px #ddd;
+  padding: 15px;
+  table {
+    width: 100%;
+  }
+  table,
+  th,
+  td {
+    border: 1px solid black;
+    border-collapse: collapse;
+  }
+  th {
+    background-color: #ddd;
+    text-align: left;
+  }
+  th,
+  td {
+    padding: 15px;
+  }
+}
