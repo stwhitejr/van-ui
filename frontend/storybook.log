@@ -1,0 +1,21 @@
+npm error code ERESOLVE
+npm error ERESOLVE unable to resolve dependency tree
+npm error
+npm error While resolving: code@1.0.0
+npm error Found: typescript@5.8.2
+npm error node_modules/typescript
+npm error   dev typescript@"^5.8.2" from the root project
+npm error
+npm error Could not resolve dependency:
+npm error peer typescript@">=4.8.4 <5.8.0" from eslint-plugin-storybook@0.11.4
+npm error node_modules/eslint-plugin-storybook
+npm error   dev eslint-plugin-storybook@"*" from the root project
+npm error
+npm error Fix the upstream dependency conflict, or retry
+npm error this command with --force or --legacy-peer-deps
+npm error to accept an incorrect (and potentially broken) dependency resolution.
+npm error
+npm error
+npm error For a full report see:
+npm error /Users/stevewhite/.npm/_logs/2025-03-11T17_07_33_260Z-eresolve-report.txt
+npm error A complete log of this run can be found in: /Users/stevewhite/.npm/_logs/2025-03-11T17_07_33_260Z-debug-0.log
