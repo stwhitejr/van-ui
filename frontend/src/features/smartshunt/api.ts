@@ -4,7 +4,12 @@ import {createBaseUrl} from '@root/util/api';
 export const BASE_URL = '/smartshunt';
 
 export interface SmartShuntData {
-  voltage: number;
+  voltage: string;
+  current: string;
+  power: string;
+  state_of_charge_percent: string;
+  consumed_ah: string;
+  time_to_go_min: string;
 }
 
 const smartshuntApi = createApi({

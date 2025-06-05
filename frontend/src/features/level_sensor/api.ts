@@ -2,10 +2,13 @@ import {createApi, fetchBaseQuery} from '@reduxjs/toolkit/query/react';
 import {createBaseUrl} from '@root/util/api';
 
 export const BASE_URL = '/level_sensor';
-
+export type LevelRating = 'Good' | 'Okay' | 'Bad';
 export interface LevelSensorData {
-  x: number;
-  y: number;
+  pitch: number;
+  roll: number;
+  level_percent: string;
+  pitch_rating: LevelRating;
+  roll_rating: LevelRating;
 }
 
 const levelsensorApi = createApi({

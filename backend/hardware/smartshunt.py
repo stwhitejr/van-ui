@@ -1,3 +1,9 @@
+from util import (
+    convert_to_float,
+    convert_to_percentage,
+    convert_minutes_to_duration,
+)
+
 readable = {
     "V": "voltage",
     "I": "current",
@@ -7,39 +13,51 @@ readable = {
     "TTG": "time_to_go_min",
 }
 
+converter_map = {
+    "V": convert_to_float,
+    "I": convert_to_float,
+    "CE": convert_to_float,
+    "SOC": convert_to_percentage,
+    "TTG": convert_minutes_to_duration,
+}
+
 
 def smartshunt(port="/dev/ttyUSB0"):
     import serial
 
-    ser = serial.Serial(port, 19200, timeout=1)
-    frame = {}
+    port = serial.Serial(port, baudrate=19200, timeout=1)
+    data = {}
 
-    try:
-        while True:
-            line = ser.readline().decode("ascii", errors="ignore").strip()
-            if not line:
+    while True:
+        try:
+            line = port.readline().decode("utf-8", errors="ignore").strip()
+            if not line or "\t" not in line:
                 continue
-            parts = line.split("\t")
-            if len(parts) == 2:
-                key, value = parts
-                frame[readable[key] or key] = value
-            elif line == "Checksum":
-                break
-    except Exception as e:
-        print("Error reading VE.Direct:", e)
-    finally:
-        ser.close()
+            key, value = line.split("\t", 1)
 
-    return frame
+            converter = converter_map.get(key)
+            if converter:
+                value = converter(value)
+
+            data[readable[key] or key] = value
+
+            # End of a frame is usually marked by 'Checksum'
+            if key == "Checksum":
+                break
+        except Exception as e:
+            print(f"Error reading line: {e}")
+            continue
+
+    return data
 
 
 def smartshuntMock():
     mock = {
-        "voltage": "12920",
-        "current": "-590",
-        "power": "763",
-        "consumed_ah": "-1156",
-        "state_of_charge_percent": "92",
-        "time_to_go_min": "45",
+        "voltage": convert_to_float(12920),
+        "current": convert_to_float(-590),
+        "power": convert_to_float(763),
+        "consumed_ah": convert_to_float(-1156),
+        "state_of_charge_percent": convert_to_percentage(92),
+        "time_to_go_min": convert_minutes_to_duration(4540),
     }
     return mock

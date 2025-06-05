@@ -1,0 +1,23 @@
+@font-face {
+  font-family: 'DM Sans Light';
+  src: url('./assets/fonts/DMSans_18pt-Light.ttf') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'DM Sans Thin';
+  src: url('./assets/fonts/DMSans_18pt-Thin.ttf') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+}
+
+body,
+html {
+  margin: 0;
+  background-color: #121112;
+  font-family:
+    DM Sans Light,
+    Helvetica,
+    Arial,
+    sans-serif;
+}
