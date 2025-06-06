@@ -1,19 +1,40 @@
 from flask import Flask, jsonify, request, send_from_directory
-from hardware import LevelSensor, InverterToggle, Smartshunt
+from hardware import (
+    LevelSensor,
+    InverterToggle,
+    Smartshunt,
+    LEDController,
+    VoiceRecognition,
+)
+import time
+
+leds = LEDController()
 
 app = Flask(__name__, static_folder="../dist")
+
+INVERTER_ON_COLOR = "(248, 232, 58)"
+
+if VoiceRecognition:
+    VoiceRecognition()
 
 
 # API
 @app.route("/inverter/toggle", methods=["POST"])
 def toggleInverter():
     data = InverterToggle()
+    if data.on:
+        leds.turn_on()
+        leds.set_color(INVERTER_ON_COLOR)
+    else:
+        leds.turn_off()
+
     return jsonify(data)
 
 
 @app.route("/smartshunt/data", methods=["GET"])
 def smartshunData():
     data = Smartshunt()
+
     return jsonify(data)
 
 
@@ -23,10 +44,46 @@ def levelsensorData():
     return jsonify(data)
 
 
-# @app.route("/api/data", methods=["POST"])
-# def get_data():
-#     data = request.json
-#     return jsonify({"you_sent": data})
+@app.route("/leds/configure", methods=["POST"])
+def configureLeds():
+    """
+    Expected request payload:
+    {
+      "on": true,
+      "brightness": 70,
+      "color": "#ffcc00",
+      "sleep": 5
+    }
+    """
+    data = request.json
+
+    if data is None:
+        return jsonify({"error": "Invalid request"}), 400
+
+    on = data.get("on")
+    brightness = data.get("brightness")
+    color = data.get("color")
+    sleep_duration = data.get("sleep", 0)
+
+    if brightness is not None:
+        leds.set_brightness(brightness)
+
+    if color:
+        try:
+            leds.set_color(color)
+        except ValueError:
+            return jsonify({"error": "Invalid color format"}), 400
+
+    if on is True:
+        leds.turn_on()
+    elif on is False:
+        leds.turn_off()
+
+    if sleep_duration:
+        time.sleep(sleep_duration)
+        leds.turn_off()
+
+    return jsonify(leds.status())
 
 
 # Frontend
