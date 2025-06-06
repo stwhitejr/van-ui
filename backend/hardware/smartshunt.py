@@ -39,7 +39,7 @@ def smartshunt(port="/dev/ttyUSB0"):
             if converter:
                 value = converter(value)
 
-            data[readable[key] or key] = value
+            data[readable.get(key) or key] = value
 
             # End of a frame is usually marked by 'Checksum'
             if key == "Checksum":
