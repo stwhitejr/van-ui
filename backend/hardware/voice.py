@@ -4,7 +4,6 @@ import queue
 import struct
 import vosk
 import json
-import subprocess
 import requests
 
 # === Config ===
@@ -16,8 +15,6 @@ CHANNELS = 1
 # === Command Map ===
 COMMAND_MAP = {
     "toggle inverter": lambda: requests.post("http://localhost:5000/inverter/toggle"),
-    "check battery": lambda: requests.get("http://localhost:5000/smartshunt/data"),
-    "check battery": lambda: requests.get("http://localhost:5000/level_sensor/data"),
 }
 
 # === Audio Queue ===
