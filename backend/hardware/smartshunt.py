@@ -37,7 +37,9 @@ def smartshunt(port="/dev/ttyUSB0"):
 
             converter = converter_map.get(key)
             if converter:
+                print("pre-conversion", key, value)
                 value = converter(value)
+                print("post-conversion", key, value)
 
             data[readable.get(key) or key] = value
 
