@@ -1,5 +1,11 @@
 import platform
 import os
+import argparse
+
+
+parser = argparse.ArgumentParser(description="Use API stubs.")
+parser.add_argument("-m", "--mock", help="API Stub")
+args = parser.parse_args()
 
 
 def is_pi():
@@ -10,7 +16,7 @@ def is_pi():
     )
 
 
-ON_PI = is_pi()
+ON_PI = not args.mock and is_pi()
 
 
 if ON_PI:
