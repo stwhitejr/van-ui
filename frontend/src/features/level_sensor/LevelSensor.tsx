@@ -50,7 +50,9 @@ const LevelData = ({
 };
 
 const LevelSensor = () => {
-  const response = useGetLevelSensorDataQuery();
+  const response = useGetLevelSensorDataQuery(undefined, {
+    pollingInterval: 5000,
+  });
 
   return (
     <RtkQueryGate {...response}>
