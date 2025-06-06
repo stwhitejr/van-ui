@@ -1,9 +1,11 @@
+import Text from './Text';
+
 export interface ErrorProps {
   message: string;
 }
 
 const Error = (props: ErrorProps) => {
-  return <div>Error: {props.message}</div>;
+  return <Text size="large">Error: {props.message}</Text>;
 };
 
 export default Error;

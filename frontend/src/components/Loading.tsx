@@ -1,7 +1,7 @@
-export interface LoadingProps {}
+import Text from './Text';
 
-const Loading = (props: LoadingProps) => {
-  return <div>Loading...</div>;
+const Loading = () => {
+  return <Text size="large">Loading...</Text>;
 };
 
 export default Loading;

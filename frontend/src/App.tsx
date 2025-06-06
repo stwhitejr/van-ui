@@ -12,16 +12,15 @@ const App = () => {
     <Provider store={store}>
       <Box
         sx={{
-          p: 1,
           display: 'flex',
-          flexDirection: 'row',
+          minHeight: '100vh',
         }}
       >
-        <Grid2 flex={1} container spacing={2}>
-          <Grid2 size={6}>
+        <Grid2 container alignItems="center">
+          <Grid2 size={6} p={2}>
             <LevelSensor />
           </Grid2>
-          <Grid2 size={6}>
+          <Grid2 size={6} p={2}>
             <Stack spacing={2}>
               <SmartShuntDashboard />
               <ToggleInverter />
