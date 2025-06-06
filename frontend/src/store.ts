@@ -3,6 +3,7 @@ import {toastSlice} from '@root/features/toast/slice';
 import inverterApi from '@root/features/inverter/api';
 import smartshuntApi from '@root/features/smartshunt/api';
 import levelsensorApi from '@root/features/level_sensor/api';
+import ledsApi from '@root/features/leds/api';
 import {setupListeners} from '@reduxjs/toolkit/query';
 
 export const createStore = (preloadedState?: Record<string, unknown>) => {
@@ -12,12 +13,14 @@ export const createStore = (preloadedState?: Record<string, unknown>) => {
       [inverterApi.reducerPath]: inverterApi.reducer,
       [smartshuntApi.reducerPath]: smartshuntApi.reducer,
       [levelsensorApi.reducerPath]: levelsensorApi.reducer,
+      [ledsApi.reducerPath]: ledsApi.reducer,
     },
     middleware: (getDefaultMiddleware) => [
       ...getDefaultMiddleware(),
       inverterApi.middleware,
       smartshuntApi.middleware,
       levelsensorApi.middleware,
+      ledsApi.middleware,
     ],
   };
 

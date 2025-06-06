@@ -41,7 +41,7 @@ const ToggleInverter = () => {
       </Grid2>
 
       <Grid2 size={8}>
-        <Button onClick={toggle}>
+        <Button onClick={toggle} height="100%">
           <Text size="large">Toggle Inverter</Text>
         </Button>
       </Grid2>

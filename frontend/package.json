@@ -21,6 +21,7 @@
     "@tanstack/react-table": "^8.21.2",
     "formik": "^2.4.6",
     "react": "^19.0.0",
+    "react-colorful": "^5.6.1",
     "react-dom": "^19.0.0",
     "react-redux": "^9.2.0",
     "react-router-dom": "6.3",

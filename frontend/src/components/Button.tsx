@@ -4,12 +4,13 @@ import PillBox from './PillBox';
 export interface ButtonProps {
   children: ReactNode;
   onClick: () => void;
+  height?: string;
 }
 
 const Button = (props: ButtonProps) => {
   return (
     <div
-      style={{cursor: 'pointer', height: '100%'}}
+      style={{cursor: 'pointer', height: props.height}}
       onClick={() => props.onClick()}
     >
       <PillBox
