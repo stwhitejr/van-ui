@@ -9,7 +9,7 @@ import Button from './components/Button';
 import Text from './components/Text';
 
 const Pages = () => {
-  const [pageNumber, setPageNumber] = useState(2);
+  const [pageNumber, setPageNumber] = useState(1);
   return (
     <Box
       sx={{
