@@ -35,7 +35,7 @@ def toggleInverter():
 
 @app.route("/smartshunt/data", methods=["GET"])
 def smartshunData():
-    return True
+    return ""
     # data = Smartshunt()
 
     # return jsonify(data)

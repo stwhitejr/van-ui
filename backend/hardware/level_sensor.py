@@ -19,24 +19,26 @@ def checkLevel():
     ay = accel_data["y"]
     az = accel_data["z"]
 
-    pitch = math.degrees(math.atan2(ax, math.sqrt(ay**2 + az**2)))
-    roll = math.degrees(math.atan2(ay, math.sqrt(ax**2 + az**2)))
+    return {"x": ax}
 
-    # Assume 0° = 100% level, and ±10° = 0% level
-    max_angle = 10
+    # pitch = math.degrees(math.atan2(ax, math.sqrt(ay**2 + az**2)))
+    # roll = math.degrees(math.atan2(ay, math.sqrt(ax**2 + az**2)))
 
-    # Compute total deviation
-    deviation = math.sqrt(pitch**2 + roll**2)
-    level_percent = max(0, 100 - (deviation / max_angle) * 100)
-    level_percent = round(level_percent, 2)
+    # # Assume 0° = 100% level, and ±10° = 0% level
+    # max_angle = 10
 
-    return {
-        "pitch": abs(round(pitch, 2)),
-        "roll": abs(round(roll, 2)),
-        "level_percent": level_percent,
-        "pitch_rating": getRating(pitch),
-        "roll_rating": getRating(roll),
-    }
+    # # Compute total deviation
+    # deviation = math.sqrt(pitch**2 + roll**2)
+    # level_percent = max(0, 100 - (deviation / max_angle) * 100)
+    # level_percent = round(level_percent, 2)
+
+    # return {
+    #     "pitch": abs(round(pitch, 2)),
+    #     "roll": abs(round(roll, 2)),
+    #     "level_percent": level_percent,
+    #     "pitch_rating": getRating(pitch),
+    #     "roll_rating": getRating(roll),
+    # }
 
 
 def checkLevelMock():
