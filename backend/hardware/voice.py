@@ -48,7 +48,7 @@ def main():
     ):
         while True:
             pcm = q.get()
-            pcm_unpacked = struct.unpack_from("h" * len(pcm) // 2, pcm)
+            pcm_unpacked = struct.unpack_from("h" * (len(pcm) // 2), pcm)
             if porcupine.process(pcm_unpacked) >= 0:
                 print("Wake word detected!")
                 listen_for_command(recognizer)
