@@ -12,7 +12,7 @@ def checkLevel():
     from mpu6050.MPU6050 import MPU6050
     import math
 
-    sensor = MPU6050(0x68)
+    sensor = MPU6050(0x68, 1)
     accel_data = sensor.get_accel_data()
 
     ax = accel_data["x"]
