@@ -7,3 +7,4 @@ pvporcupine
 sounddevice
 vosk
 requests
+board

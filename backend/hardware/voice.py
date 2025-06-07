@@ -5,6 +5,7 @@ import struct
 import vosk
 import json
 import requests
+import os
 
 # === Config ===
 VOSK_MODEL_PATH = "/home/pi/models/vosk/vosk-model-small-en-us-0.15"
@@ -28,7 +29,10 @@ def audio_callback(indata, frames, time, status):
 # === Main Loop ===
 def main():
     print("Loading Porcupine...")
-    porcupine = pvporcupine.create(keywords=[WAKE_WORD])
+    porcupine = pvporcupine.create(
+        access_key=os.getenv("PICOVOICE_ACCESS_KEY"),
+        keywords=[WAKE_WORD],
+    )
     print("Loading Vosk...")
     model = vosk.Model(VOSK_MODEL_PATH)
     recognizer = vosk.KaldiRecognizer(model, RATE)
