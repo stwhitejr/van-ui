@@ -9,7 +9,7 @@ import os
 
 # === Config ===
 VOSK_MODEL_PATH = "/home/pi/models/vosk/vosk-model-small-en-us-0.15"
-WAKE_WORD = "reginald"
+WAKE_WORD = "jarvis"
 RATE = 16000
 CHANNELS = 1
 
