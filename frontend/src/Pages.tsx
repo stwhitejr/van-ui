@@ -9,7 +9,7 @@ import Button from './components/Button';
 import Text from './components/Text';
 
 const Pages = () => {
-  const [pageNumber, setPageNumber] = useState(1);
+  const [pageNumber, setPageNumber] = useState(2);
   return (
     <Box
       sx={{
@@ -38,7 +38,7 @@ const Pages = () => {
         </Grid2>
       )}
       {pageNumber === 2 && (
-        <Grid2 container alignItems="center" width="100%">
+        <Grid2 container alignSelf="center" alignItems="center" width="100%">
           <Grid2 size={12} textAlign="center">
             <Box display="inline-block">
               <Button onClick={() => setPageNumber(1)}>

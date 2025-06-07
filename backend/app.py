@@ -52,7 +52,8 @@ def configureLeds():
       "on": true,
       "brightness": 70,
       "color": "#ffcc00",
-      "sleep": 5
+      "sleep": 5,
+      "preset": "rainbow"
     }
     """
     data = request.json
@@ -73,6 +74,12 @@ def configureLeds():
             leds.set_color(color)
         except ValueError:
             return jsonify({"error": "Invalid color format"}), 400
+
+    if data.preset:
+        try:
+            leds.run_preset(data.preset)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
 
     if on is True:
         leds.turn_on()

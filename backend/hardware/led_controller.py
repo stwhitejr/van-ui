@@ -1,5 +1,7 @@
 import board
 import neopixel
+import time
+import math
 
 
 class LEDController:
@@ -41,3 +43,46 @@ class LEDController:
             "brightness": round(self.brightness * 100),
             "color": self.color,
         }
+
+    def run_preset(self, name):
+        if name == "rainbow":
+            self._rainbow_cycle(0.001)
+        elif name == "chase":
+            self._color_chase((0, 255, 0), 0.05)
+        elif name == "pulse":
+            self._pulse((0, 0, 255))
+        else:
+            raise ValueError(f"Unknown preset: {name}")
+
+    def _rainbow_cycle(self, wait):
+        def wheel(pos):
+            if pos < 85:
+                return (pos * 3, 255 - pos * 3, 0)
+            elif pos < 170:
+                pos -= 85
+                return (255 - pos * 3, 0, pos * 3)
+            else:
+                pos -= 170
+                return (0, pos * 3, 255 - pos * 3)
+
+        for j in range(256):
+            for i in range(self.num_leds):
+                self.pixels[i] = wheel((i * 256 // self.num_leds + j) & 255)
+            self.pixels.show()
+            time.sleep(wait)
+
+    def _color_chase(self, color, wait):
+        for i in range(self.num_leds):
+            self.pixels[i] = color
+            self.pixels.show()
+            time.sleep(wait)
+        self.pixels.fill((0, 0, 0))
+        self.pixels.show()
+
+    def _pulse(self, color, steps=50, delay=0.02):
+        for i in range(steps):
+            factor = math.sin(math.pi * i / steps)
+            scaled_color = tuple(int(c * factor) for c in color)
+            self.pixels.fill(scaled_color)
+            self.pixels.show()
+            time.sleep(delay)

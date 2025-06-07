@@ -14,6 +14,7 @@ export interface LedConfigureRequest {
   sleep?: number;
   brightness?: number;
   color?: string;
+  preset?: 'rainbow' | 'pulse' | 'chase';
 }
 
 const ledsApi = createApi({

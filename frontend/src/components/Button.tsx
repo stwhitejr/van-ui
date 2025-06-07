@@ -5,6 +5,7 @@ export interface ButtonProps {
   children: ReactNode;
   onClick: () => void;
   height?: string;
+  isActive?: boolean;
 }
 
 const Button = (props: ButtonProps) => {
@@ -14,7 +15,7 @@ const Button = (props: ButtonProps) => {
       onClick={() => props.onClick()}
     >
       <PillBox
-        gradiantVariation="button"
+        gradiantVariation={props.isActive ? 'activeButton' : 'button'}
         gradiantDirection="180deg"
         sx={{
           textAlign: 'center',
