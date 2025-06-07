@@ -4,14 +4,14 @@ from hardware import (
     InverterToggle,
     Smartshunt,
     # LEDController,
-    # VoiceRecognition,
+    VoiceRecognition,
 )
 import time
 
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 from threading import Thread
 
-# load_dotenv()
+load_dotenv()
 
 # leds = LEDController()
 
@@ -24,6 +24,7 @@ INVERTER_ON_COLOR = "248, 232, 58"
 @app.route("/inverter/toggle", methods=["POST"])
 def toggleInverter():
     data = InverterToggle()
+    print(data)
     # if data.on:
     # leds.turn_on()
     # leds.set_color(INVERTER_ON_COLOR)
@@ -37,7 +38,6 @@ def toggleInverter():
 def smartshunData():
     return ""
     # data = Smartshunt()
-
     # return jsonify(data)
 
 
@@ -108,7 +108,7 @@ def static_proxy(path):
 
 
 if __name__ == "__main__":
-    # if VoiceRecognition:
-    #     Thread(target=VoiceRecognition, daemon=True).start()
+    if VoiceRecognition:
+        Thread(target=VoiceRecognition, daemon=True).start()
 
     app.run(host="0.0.0.0", port=5000, debug=True)
