@@ -8,6 +8,7 @@ from hardware import (
 )
 import time
 from dotenv import load_dotenv
+from threading import Thread
 
 load_dotenv()
 
@@ -16,9 +17,6 @@ leds = LEDController()
 app = Flask(__name__, static_folder="../dist")
 
 INVERTER_ON_COLOR = "(248, 232, 58)"
-
-if VoiceRecognition:
-    VoiceRecognition()
 
 
 # API
@@ -108,4 +106,7 @@ def static_proxy(path):
 
 
 if __name__ == "__main__":
+    if VoiceRecognition:
+        Thread(target=VoiceRecognition, daemon=True).start()
+
     app.run(host="0.0.0.0", port=5000, debug=True)
