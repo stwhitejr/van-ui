@@ -1,8 +1,10 @@
-def toggleInverter():
-    from gpiozero import LED
-    from time import sleep
+from gpiozero import LED
+from time import sleep
 
-    relay = LED(26)
+relay = LED(26)
+
+
+def toggleInverter():
     print("relay", relay)
 
     try:
