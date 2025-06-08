@@ -1,10 +1,7 @@
 def toggleInverter():
     from gpiozero import LED
 
-    print("here")
-
     relay = LED(26)
-    print(relay)
 
     try:
         if relay.is_active:
@@ -18,6 +15,5 @@ def toggleInverter():
 
 
 def toggleInverterMock():
-    print("mock")
     mock = {"on": True, "success": True}
     return mock
