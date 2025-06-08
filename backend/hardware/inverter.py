@@ -2,6 +2,7 @@ def toggleInverter():
     from gpiozero import LED
 
     relay = LED(26)
+    print(relay)
 
     try:
         if relay.is_active:
