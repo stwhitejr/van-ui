@@ -16,6 +16,7 @@ import {LedConfigureRequest, useConfigureLedsMutation} from './api';
 import {RgbColor, RgbColorPicker} from 'react-colorful';
 import './LedController.css';
 import useDebounce from '@root/util/useDebounce';
+import Container from '@root/components/Container';
 
 const LedController = () => {
   const [api] = useConfigureLedsMutation();
@@ -104,35 +105,34 @@ const LedController = () => {
         <Text size="large">{memoizedValue.color}</Text>
       </Grid2>
 
-      <Grid2 size={8}>
-        <Stack spacing={2}>
-          <Box pt={2}>
-            <Text size="title">Presets</Text>
-          </Box>
-          <Button
-            isActive={preset === 'rainbow'}
-            onClick={() => setPreset('rainbow')}
-          >
-            <Text size="large">Rainbow</Text>
-          </Button>
-          <Button
-            isActive={preset === 'chase'}
-            onClick={() => setPreset('chase')}
-          >
-            <Text size="large">Chase</Text>
-          </Button>
-          <Button
-            isActive={preset === 'pulse'}
-            onClick={() => setPreset('pulse')}
-          >
-            <Text size="large">Pulse</Text>
-          </Button>{' '}
-          {!!preset && (
-            <Button onClick={() => setPreset(null)}>
-              <Text size="large">Remove Preset</Text>
+      <Grid2 size={8} pt={2}>
+        <Container title="Presets">
+          <Stack spacing={2}>
+            <Button
+              isActive={preset === 'rainbow'}
+              onClick={() => setPreset('rainbow')}
+            >
+              <Text size="large">Rainbow</Text>
             </Button>
-          )}
-        </Stack>
+            <Button
+              isActive={preset === 'chase'}
+              onClick={() => setPreset('chase')}
+            >
+              <Text size="large">Chase</Text>
+            </Button>
+            <Button
+              isActive={preset === 'pulse'}
+              onClick={() => setPreset('pulse')}
+            >
+              <Text size="large">Pulse</Text>
+            </Button>{' '}
+            {!!preset && (
+              <Button onClick={() => setPreset(null)}>
+                <Text size="large">Remove Preset</Text>
+              </Button>
+            )}
+          </Stack>
+        </Container>
       </Grid2>
     </Grid2>
   );

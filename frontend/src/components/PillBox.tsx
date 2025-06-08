@@ -10,7 +10,7 @@ export interface PillBoxProps extends ComponentProps<typeof Box> {
 const gradiantByVariation = {
   default: ' #38343c 0%, #211f23 100%',
   button: ' #38343c 0%, #211f23 100%',
-  activeButton: ' #c29945 0%, #e2b65b 100%',
+  activeButton: 'rgb(24, 24, 24) 0%,rgb(39, 39, 39) 100%',
   on: ' #c29945 0%, #e2b65b 100%',
 };
 
