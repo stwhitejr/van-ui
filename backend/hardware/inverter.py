@@ -1,17 +1,21 @@
 def toggleInverter():
     from gpiozero import LED
+    from time import sleep
 
     relay = LED(26)
+    print("relay", relay)
 
     try:
-        if relay.value == 1:
+        if relay.is_active:
             relay.off()
+            sleep(2)
             return {"on": False, "success": True}
         else:
             relay.on()
+            sleep(2)
             return {"on": True, "success": True}
     except Exception as e:
-        return {"on": bool(relay.value), "success": False, "error": str(e)}
+        return {"on": relay.is_active, "success": False, "error": str(e)}
 
 
 def toggleInverterMock():
