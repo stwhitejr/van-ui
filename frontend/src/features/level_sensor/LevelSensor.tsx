@@ -60,7 +60,7 @@ const LevelSensor = () => {
         <Stack flexDirection="row" useFlexGap spacing={2} alignItems="center">
           <Text size="title">Level</Text>
           <PillBox gradiantDirection="180deg">
-            <Text size="body">{response.data?.level_percent}</Text>
+            <Text size="body">{response.data?.level_percent}%</Text>
           </PillBox>
         </Stack>
         <LevelData
