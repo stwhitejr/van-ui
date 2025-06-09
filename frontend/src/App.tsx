@@ -9,6 +9,15 @@ export const theme = createTheme({
   palette: {
     mode: 'dark',
   },
+  breakpoints: {
+    values: {
+      xs: 0,
+      sm: 480,
+      md: 800,
+      lg: 1200,
+      xl: 1536,
+    },
+  },
 });
 
 const App = () => {
