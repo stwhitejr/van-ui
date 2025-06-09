@@ -37,7 +37,7 @@ const SmartShuntDashboard = () => {
             width: {
               xs: '50vw',
               sm: '50vw',
-              md: '20vw',
+              md: '17vw',
             },
             display: 'flex',
           }}
