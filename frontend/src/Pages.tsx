@@ -27,7 +27,7 @@ const Pages = () => {
         mb={0}
         bgcolor="rgba(116, 116, 116, 0.1)"
         borderRadius="10px"
-        p={2}
+        p={1}
         position="relative"
       >
         <Stack
@@ -91,6 +91,8 @@ const Pages = () => {
                 md: 6,
               }}
               p={2}
+              pr={0}
+              pb={0}
             >
               <LevelSensor />
             </Grid2>
@@ -101,6 +103,7 @@ const Pages = () => {
                 md: 6,
               }}
               p={2}
+              pb={0}
             >
               <Container title="Battery Monitor">
                 <Stack spacing={2}>
