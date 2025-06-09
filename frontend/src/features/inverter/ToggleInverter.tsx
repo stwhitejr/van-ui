@@ -23,7 +23,7 @@ const ToggleInverter = () => {
   }, [response, setToast]);
 
   return (
-    <Button onClick={toggle} height="100%">
+    <Button onClick={toggle} sx={{height: '100%'}}>
       <Text size="large">Turn Inverter {response.data?.on ? 'Off' : 'On'}</Text>
     </Button>
   );

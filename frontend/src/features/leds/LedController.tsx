@@ -50,15 +50,21 @@ const LedController = () => {
 
   return (
     <Grid2 container spacing={2} width="100%" p={2}>
-      <Grid2 size={1}>
-        <Button height="100%" onClick={() => setOn(!on)}>
+      <Grid2 size={{xs: 6, sm: 6, md: 1}}>
+        <Button
+          onClick={() => setOn(!on)}
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+          }}
+        >
           <Text size="large">{on ? 'Off' : 'On'}</Text>
         </Button>
       </Grid2>
-      <Grid2 size={3}>
+      <Grid2 size={{xs: 6, sm: 6, md: 3}}>
         <PillBox
           sx={{
-            height: '100%',
             display: 'flex',
             alignItems: 'center',
           }}
@@ -82,10 +88,14 @@ const LedController = () => {
         </PillBox>
       </Grid2>
 
-      <Grid2 size={8}>
+      <Grid2 size={{xs: 12, sm: 12, md: 8}} display="flex">
         <PillBox
           gradiantDirection="-90deg"
-          sx={{height: '100%', display: 'flex', alignItems: 'center'}}
+          sx={{
+            display: 'flex',
+            flex: 1,
+            alignItems: 'center',
+          }}
         >
           <Box flex={1}>
             <Text size="small">Brightness</Text>
@@ -100,12 +110,12 @@ const LedController = () => {
           </Box>
         </PillBox>
       </Grid2>
-      <Grid2 size={4} pt={2} textAlign="center">
+      <Grid2 size={{xs: 12, sm: 12, md: 4}} textAlign="center">
         <RgbColorPicker color={color} onChange={setColor} />
         <Text size="large">{memoizedValue.color}</Text>
       </Grid2>
 
-      <Grid2 size={8} pt={2}>
+      <Grid2 size={{xs: 12, sm: 12, md: 8}}>
         <Container title="Presets">
           <Stack spacing={2}>
             <Button
@@ -125,7 +135,7 @@ const LedController = () => {
               onClick={() => setPreset('pulse')}
             >
               <Text size="large">Pulse</Text>
-            </Button>{' '}
+            </Button>
             {!!preset && (
               <Button onClick={() => setPreset(null)}>
                 <Text size="large">Remove Preset</Text>

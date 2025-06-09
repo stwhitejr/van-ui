@@ -5,7 +5,7 @@ import Toast from '@root/features/toast/Toast';
 import './App.css';
 import Pages from './Pages';
 
-const darkTheme = createTheme({
+export const theme = createTheme({
   palette: {
     mode: 'dark',
   },
@@ -13,7 +13,7 @@ const darkTheme = createTheme({
 
 const App = () => {
   return (
-    <ThemeProvider theme={darkTheme}>
+    <ThemeProvider theme={theme}>
       <div id="App">
         <Provider store={store}>
           <Pages />

@@ -9,6 +9,7 @@ import Button from './components/Button';
 import Text from './components/Text';
 import Container from './components/Container';
 import LogoColor from '@root/assets/images/logo3.png';
+import {theme} from './App';
 
 const Pages = () => {
   const [pageNumber, setPageNumber] = useState(1);
@@ -30,23 +31,36 @@ const Pages = () => {
         position="relative"
       >
         <Stack
-          flexDirection="row"
+          flexDirection={{
+            xs: 'column',
+            sm: 'column',
+            md: 'row',
+          }}
           justifyContent="space-between"
           alignItems="center"
         >
           <Box>
-            <Box>
-              <img
-                style={{
+            <Box
+              sx={{
+                pb: 1,
+                [theme.breakpoints.up('md')]: {
                   position: 'absolute',
                   top: '-8px',
                   left: '10px',
-                }}
-                src={LogoColor}
-                width="100px"
-              />
+                  pb: 0,
+                },
+              }}
+            >
+              <img src={LogoColor} width="100px" />
             </Box>
-            <Box ml={15}>
+            <Box
+              ml={15}
+              display={{
+                xs: 'none',
+                sm: 'none',
+                md: 'block',
+              }}
+            >
               <Text size="large">Van Dashboard</Text>
             </Box>
           </Box>
@@ -70,17 +84,24 @@ const Pages = () => {
       <Box flex={1}>
         {pageNumber === 1 && (
           <Grid2 container width="100%" alignItems="flex-start">
-            {/* <Grid2 size={12} textAlign="center">
-            <Box display="inline-block">
-              <Button onClick={() => setPageNumber(2)}>
-                <Text size="body">Configure LEDs</Text>
-              </Button>
-            </Box>
-          </Grid2> */}
-            <Grid2 size={6} p={2}>
+            <Grid2
+              size={{
+                xs: 12,
+                sm: 12,
+                md: 6,
+              }}
+              p={2}
+            >
               <LevelSensor />
             </Grid2>
-            <Grid2 size={6} p={2}>
+            <Grid2
+              size={{
+                xs: 12,
+                sm: 12,
+                md: 6,
+              }}
+              p={2}
+            >
               <Container title="Battery Monitor">
                 <Stack spacing={2}>
                   <SmartShuntDashboard />

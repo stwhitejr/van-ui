@@ -1,17 +1,21 @@
-import {ReactNode} from 'react';
+import {ComponentProps, ReactNode} from 'react';
 import PillBox from './PillBox';
+import {Box} from '@mui/material';
 
 export interface ButtonProps {
   children: ReactNode;
   onClick: () => void;
-  height?: string;
   isActive?: boolean;
+  sx?: ComponentProps<typeof Box>['sx'];
 }
 
 const Button = (props: ButtonProps) => {
   return (
-    <div
-      style={{cursor: 'pointer', height: props.height}}
+    <Box
+      sx={{
+        ...props.sx,
+        cursor: 'pointer',
+      }}
       onClick={() => props.onClick()}
     >
       <PillBox
@@ -27,7 +31,7 @@ const Button = (props: ButtonProps) => {
       >
         {props.children}
       </PillBox>
-    </div>
+    </Box>
   );
 };
 

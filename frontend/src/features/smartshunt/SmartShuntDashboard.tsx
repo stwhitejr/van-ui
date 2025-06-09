@@ -34,7 +34,11 @@ const SmartShuntDashboard = () => {
             borderRadius: '100%',
             textAlign: 'center',
             aspectRatio: 1 / 1,
-            width: '20vw',
+            width: {
+              xs: '50vw',
+              sm: '50vw',
+              md: '20vw',
+            },
             display: 'flex',
           }}
         >
