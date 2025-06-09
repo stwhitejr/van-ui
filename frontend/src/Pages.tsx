@@ -92,7 +92,11 @@ const Pages = () => {
               }}
               p={2}
               pr={0}
-              pb={0}
+              pb={{
+                xs: 2,
+                sm: 2,
+                md: 0,
+              }}
             >
               <LevelSensor />
             </Grid2>
@@ -103,7 +107,11 @@ const Pages = () => {
                 md: 6,
               }}
               p={2}
-              pb={0}
+              pb={{
+                xs: 2,
+                sm: 2,
+                md: 0,
+              }}
             >
               <Container title="Battery Monitor">
                 <Stack spacing={2}>
