@@ -1,5 +1,5 @@
 const CACHE_NAME = 'van-ui-cache-v1';
-const ASSETS = ['/', '/index.html', '/manifest.json', '/icons/icon-192.png'];
+const ASSETS = ['/', '/index.html', '/manifest.json', '/icons/192x192.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
