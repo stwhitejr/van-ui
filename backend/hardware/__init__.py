@@ -24,11 +24,10 @@ if ON_PI:
     from .inverter import toggleInverter as InverterToggle
     from .smartshunt import smartshunt as Smartshunt
 
-    # from .led_controller import LEDController
+    from .led_controller import LEDController
     from .voice import main as VoiceRecognition
 else:
     from .level_sensor import checkLevelMock as LevelSensor
     from .inverter import toggleInverterMock as InverterToggle
     from .smartshunt import smartshuntMock as Smartshunt
-
-    # from .led_controller_mock import MockLEDController as LEDController
+    from .led_controller_mock import MockLEDController as LEDController

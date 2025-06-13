@@ -13,9 +13,17 @@ WAKE_WORD = "jarvis"
 RATE = 16000
 CHANNELS = 1
 
+togglerInverter = "https://172.20.10.6:5000/inverter/toggle"
+
 # === Command Map ===
 COMMAND_MAP = {
-    "toggle inverter": lambda: requests.post("http://localhost:5000/inverter/toggle"),
+    "toggle inverter": lambda: requests.post(togglerInverter),
+    "try and murder": lambda: requests.post(togglerInverter),
+    "time to cook": lambda: requests.post(togglerInverter),
+    "time to cut": lambda: requests.post(togglerInverter),
+    "let's cook": lambda: requests.post(togglerInverter),
+    "let's cut": lambda: requests.post(togglerInverter),
+    "done cooking": lambda: requests.post(togglerInverter),
 }
 
 # === Audio Queue ===
