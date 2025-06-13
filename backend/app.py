@@ -64,9 +64,6 @@ def configureLeds():
     print("leds class instance log:", leds)
     print("leds request log:", data)
 
-    if data is None:
-        return jsonify({"error": "Invalid request"}), 400
-
     on = data.get("on")
     brightness = data.get("brightness")
     color = data.get("color")
@@ -91,9 +88,10 @@ def configureLeds():
         except Exception as e:
             return jsonify({"error": f"Invalid color format: {str(e)}"}), 400
 
-    if data.preset:
+    preset = data.get("preset")
+    if preset:
         try:
-            leds.run_preset(data.preset)
+            leds.run_preset(preset)
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
 
