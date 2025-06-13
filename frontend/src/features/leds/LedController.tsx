@@ -38,8 +38,9 @@ const LedController = () => {
       brightness,
       sleep,
       color: Object.values(color).join(', '),
+      preset,
     }),
-    [on, brightness, sleep, color]
+    [on, brightness, sleep, color, preset]
   );
 
   const debouncedValue = useDebounce(memoizedValue, 500);
