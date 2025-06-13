@@ -17,7 +17,7 @@ leds = LEDController()
 
 app = Flask(__name__, static_folder="../dist")
 
-INVERTER_ON_COLOR = "248, 232, 58"
+INVERTER_ON_COLOR = [248, 232, 58]
 
 
 # API
