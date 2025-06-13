@@ -25,18 +25,8 @@ Create `~/startup.sh:`
 # Change to your project directory
 cd /home/pi/van-ui
 
-# Pull latest code
-git pull
-
-# Build React frontend
-cd frontend
-npm install
-npm run build
-cd ../
-
 # Start backend
-source venv/bin/activate
-python backend/app.py &
+sudo /home/pi/van-ui/backend/venv/bin/python /home/pi/van-ui/backend/app.py &
 ```
 
 Make it executable `chmod +x ~/startup.sh`
