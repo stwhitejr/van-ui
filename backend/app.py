@@ -61,7 +61,8 @@ def configureLeds():
     """
     data = request.json
 
-    print("leds print", leds)
+    print("leds class instance log:", leds)
+    print("leds request log:", data)
 
     if data is None:
         return jsonify({"error": "Invalid request"}), 400
