@@ -74,7 +74,7 @@ sudo systemctl start van-ui
 Edit autostart config
 `nano ~/.config/lxsession/LXDE-pi/autostart`
 Add:
-`@chromium-browser --noerrdialogs --kiosk http://172.20.10.6:5000 --incognito`
+`@chromium-browser --noerrdialogs --kiosk https://172.20.10.6:5000 --incognito`
 
 Modify the URL above as needed.
 
