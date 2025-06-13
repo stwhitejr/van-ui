@@ -77,9 +77,19 @@ def configureLeds():
 
     if color:
         try:
-            leds.set_color(color)
-        except ValueError:
-            return jsonify({"error": "Invalid color format"}), 400
+            if isinstance(color, str):
+                # Handle string format "255, 255, 255"
+                r, g, b = [int(c.strip()) for c in color.split(",")]
+            elif isinstance(color, list) and len(color) == 3:
+                # Handle list format [255, 255, 255]
+                r, g, b = color
+            else:
+                raise ValueError("Unsupported color format")
+
+            leds.set_color(r, g, b)
+
+        except Exception as e:
+            return jsonify({"error": f"Invalid color format: {str(e)}"}), 400
 
     if data.preset:
         try:
