@@ -27,6 +27,7 @@ COMMAND_MAP = {
     "time to cut": togglerInverter,
     "let's cook": togglerInverter,
     "let's go": togglerInverter,
+    "what's cook": togglerInverter,
     "what cook": togglerInverter,
     "done cooking": togglerInverter,
 }

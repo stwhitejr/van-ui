@@ -61,6 +61,8 @@ def configureLeds():
     """
     data = request.json
 
+    print("leds print", leds)
+
     if data is None:
         return jsonify({"error": "Invalid request"}), 400
 
