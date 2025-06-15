@@ -38,13 +38,21 @@ class LEDController:
         for byte in data:
             for i in range(8):
                 if byte & (1 << (7 - i)):
-                    # 1 bit
-                    wf.append(pigpio.pulse(1 << self.gpio_pin, 0, 0.8))
-                    wf.append(pigpio.pulse(0, 1 << self.gpio_pin, 0.45))
+                    # 1 bit: T1H=0.8us, T1L=0.45us
+                    wf.append(
+                        pigpio.pulse(1 << self.gpio_pin, 0, 8)
+                    )  # 0.8us * 10 = 8 us
+                    wf.append(
+                        pigpio.pulse(0, 1 << self.gpio_pin, 5)
+                    )  # 0.45us * 10 = 5 us
                 else:
-                    # 0 bit
-                    wf.append(pigpio.pulse(1 << self.gpio_pin, 0, 0.4))
-                    wf.append(pigpio.pulse(0, 1 << self.gpio_pin, 0.85))
+                    # 0 bit: T0H=0.4us, T0L=0.85us
+                    wf.append(
+                        pigpio.pulse(1 << self.gpio_pin, 0, 4)
+                    )  # 0.4us * 10 = 4 us
+                    wf.append(
+                        pigpio.pulse(0, 1 << self.gpio_pin, 9)
+                    )  # 0.85us * 10 = 9 us
         self.pi.wave_add_generic(wf)
         wid = self.pi.wave_create()
         self.pi.wave_send_once(wid)
