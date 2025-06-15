@@ -6,6 +6,9 @@ import vosk
 import json
 import requests
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # === Config ===
 VOSK_MODEL_PATH = "/home/steve/models/vosk/vosk-model-small-en-us-0.15"
