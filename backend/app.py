@@ -16,17 +16,14 @@ leds = LEDController()
 
 app = Flask(__name__, static_folder="../dist")
 
-INVERTER_ON_COLOR = [248, 232, 58]
-
 
 # API
 @app.route("/inverter/toggle", methods=["POST"])
 def toggleInverter():
     data = InverterToggle()
-    print(data)
-    if data.on:
+    print("inverter data", data)
+    if data.get("on"):
         leds.turn_on()
-        leds.set_color(INVERTER_ON_COLOR)
     else:
         leds.turn_off()
 
