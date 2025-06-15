@@ -4,7 +4,6 @@ from hardware import (
     InverterToggle,
     Smartshunt,
     LEDController,
-    VoiceRecognition,
 )
 import time
 
@@ -119,7 +118,4 @@ def static_proxy(path):
 
 
 if __name__ == "__main__":
-    if VoiceRecognition:
-        Thread(target=VoiceRecognition, daemon=True).start()
-
     app.run(host="0.0.0.0", port=5000, debug=True)
