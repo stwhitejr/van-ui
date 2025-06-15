@@ -1,16 +1,20 @@
 def getRating(degree):
-    if abs(degree) < 2 and abs(degree) < 2:
-        status = "Good"
-    elif abs(degree) < 5 and abs(degree) < 5:
-        status = "Okay"
+    abs_degree = abs(degree)
+    if abs_degree < 2:
+        return "Good"
+    elif abs_degree < 5:
+        return "Okay"
     else:
-        status = "Bad"
-    return status
+        return "Bad"
 
 
 def checkLevel():
     from mpu6050 import mpu6050
     import math
+
+    # These should be readings you get when the van is actually level. This depends on how you mount the sensor.
+    CALIBRATION_PITCH_OFFSET = 0
+    CALIBRATION_ROLL_OFFSET = 0
 
     sensor = mpu6050(0x68)
     accel_data = sensor.get_accel_data()
@@ -19,8 +23,13 @@ def checkLevel():
     ay = accel_data["y"]
     az = accel_data["z"]
 
-    pitch = math.degrees(math.atan2(ax, math.sqrt(ay**2 + az**2)))
-    roll = math.degrees(math.atan2(ay, math.sqrt(ax**2 + az**2)))
+    pitch = (
+        math.degrees(math.atan2(ax, math.sqrt(ay**2 + az**2)))
+        - CALIBRATION_PITCH_OFFSET
+    )
+    roll = (
+        math.degrees(math.atan2(ay, math.sqrt(ax**2 + az**2))) - CALIBRATION_ROLL_OFFSET
+    )
 
     # Assume 0° = 100% level, and ±10° = 0% level
     max_angle = 10

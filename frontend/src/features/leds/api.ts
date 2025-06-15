@@ -3,9 +3,13 @@ import {createBaseUrl} from '@root/util/api';
 
 export const BASE_URL = '/leds';
 
-export interface LedConfigureResponse {
-  success: boolean;
-  on: boolean;
+export type LEDPreset = 'rainbow' | 'pulse' | 'chase';
+
+export interface LedResponse {
+  on?: boolean;
+  brightness?: number;
+  color?: [number, number, number];
+  preset?: LEDPreset | null;
   error?: string;
 }
 
@@ -14,7 +18,7 @@ export interface LedConfigureRequest {
   sleep?: number;
   brightness?: number;
   color?: string;
-  preset?: 'rainbow' | 'pulse' | 'chase';
+  preset?: LEDPreset;
 }
 
 const ledsApi = createApi({
@@ -23,7 +27,10 @@ const ledsApi = createApi({
     baseUrl: createBaseUrl(BASE_URL),
   }),
   endpoints: (build) => ({
-    configureLeds: build.mutation<LedConfigureResponse, LedConfigureRequest>({
+    ledsStatus: build.query<LedResponse, void>({
+      query: () => ({url: `/`}),
+    }),
+    configureLeds: build.mutation<LedResponse, LedConfigureRequest>({
       query: (body) => ({url: `/configure`, method: 'post', body}),
     }),
   }),
@@ -31,4 +38,4 @@ const ledsApi = createApi({
 
 export default ledsApi;
 
-export const {useConfigureLedsMutation} = ledsApi;
+export const {useConfigureLedsMutation, useLedsStatusQuery} = ledsApi;

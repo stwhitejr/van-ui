@@ -24,6 +24,7 @@ def toggleInverter():
     print("inverter data", data)
     if data.get("on"):
         leds.turn_on()
+        leds.run_preset("chase")
     else:
         leds.turn_off()
 
@@ -40,6 +41,11 @@ def smartshunData():
 def levelsensorData():
     data = LevelSensor()
     return jsonify(data)
+
+
+@app.route("/leds", methods=["GET"])
+def ledsStatus():
+    return jsonify(leds.status())
 
 
 @app.route("/leds/configure", methods=["POST"])

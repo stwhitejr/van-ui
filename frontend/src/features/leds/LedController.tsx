@@ -11,23 +11,41 @@ import {
 import Button from '@root/components/Button';
 import PillBox from '@root/components/PillBox';
 import Text from '@root/components/Text';
-import {useEffect, useMemo, useState} from 'react';
-import {LedConfigureRequest, useConfigureLedsMutation} from './api';
+import {useEffect, useMemo, useRef, useState} from 'react';
+import {
+  LedConfigureRequest,
+  LedResponse,
+  useConfigureLedsMutation,
+  useLedsStatusQuery,
+} from './api';
 import {RgbColor, RgbColorPicker} from 'react-colorful';
 import './LedController.css';
 import useDebounce from '@root/util/useDebounce';
 import Container from '@root/components/Container';
+import RtkQueryGate from '@root/components/RtkQueryGate';
 
-const LedController = () => {
+const LedControllerForm = ({data}: {data: LedResponse}) => {
+  const isFirstMount = useRef(true);
   const [api] = useConfigureLedsMutation();
-  const [on, setOn] = useState(false);
+
+  // Use API response as initial data
+  // Note: this can become stale if the LEDs change elsewhere like the voice commands
+  const [on, setOn] = useState(data.on || false);
   const [sleep, setSleep] = useState(0);
-  const [brightness, setBrightness] = useState(50);
-  const [color, setColor] = useState<RgbColor>({
-    r: 255,
-    g: 255,
-    b: 255,
-  });
+  const [brightness, setBrightness] = useState(data.brightness || 50);
+  const [color, setColor] = useState<RgbColor>(
+    data.color
+      ? {
+          r: data.color[0],
+          g: data.color[1],
+          b: data.color[2],
+        }
+      : {
+          r: 255,
+          g: 255,
+          b: 255,
+        }
+  );
   const [preset, setPreset] = useState<null | LedConfigureRequest['preset']>(
     null
   );
@@ -46,7 +64,11 @@ const LedController = () => {
   const debouncedValue = useDebounce(memoizedValue, 500);
 
   useEffect(() => {
-    api(debouncedValue);
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+    } else {
+      api(debouncedValue);
+    }
   }, [api, debouncedValue]);
 
   return (
@@ -117,7 +139,22 @@ const LedController = () => {
       </Grid2>
 
       <Grid2 size={{xs: 12, sm: 12, md: 8}}>
-        <Container title="Presets">
+        <Container
+          title="Presets"
+          additional={
+            !!preset && (
+              <Box
+                sx={{
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                }}
+                onClick={() => setPreset(null)}
+              >
+                <Text size="small">Remove Preset</Text>
+              </Box>
+            )
+          }
+        >
           <Stack spacing={2}>
             <Button
               isActive={preset === 'rainbow'}
@@ -137,15 +174,20 @@ const LedController = () => {
             >
               <Text size="large">Pulse</Text>
             </Button>
-            {!!preset && (
-              <Button onClick={() => setPreset(null)}>
-                <Text size="large">Remove Preset</Text>
-              </Button>
-            )}
           </Stack>
         </Container>
       </Grid2>
     </Grid2>
+  );
+};
+
+const LedController = () => {
+  const statusResponse = useLedsStatusQuery();
+
+  return (
+    <RtkQueryGate {...statusResponse}>
+      {statusResponse.data && <LedControllerForm data={statusResponse.data} />}
+    </RtkQueryGate>
   );
 };
 

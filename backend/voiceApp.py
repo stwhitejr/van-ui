@@ -7,6 +7,8 @@ import json
 import requests
 import os
 from dotenv import load_dotenv
+from time import sleep
+from difflib import get_close_matches
 
 load_dotenv()
 
@@ -16,24 +18,81 @@ WAKE_WORD = "jarvis"
 RATE = 16000
 CHANNELS = 1
 
-togglerInverter = lambda: requests.post(
-    "http://172.20.10.6:5000/inverter/toggle", verify=False
-)
+API_HOST = "http://172.20.10.6:5000"
 
-# === Command Map ===
-COMMAND_MAP = {
-    "toggle inverter": togglerInverter,
-    "toggle her": togglerInverter,
-    "toggling her": togglerInverter,
-    "try and murder": togglerInverter,
-    "time to cook": togglerInverter,
-    "time to cut": togglerInverter,
-    "let's cook": togglerInverter,
-    "let's go": togglerInverter,
-    "what's cook": togglerInverter,
-    "what cook": togglerInverter,
-    "done cooking": togglerInverter,
+
+def toggle_inverter():
+    return requests.post(f"{API_HOST}/inverter/toggle", verify=False)
+
+
+def leds_listening():
+    return requests.post(
+        f"{API_HOST}/leds/configure",
+        verify=False,
+        json={"on": True, "color": "255, 255, 255", "preset": "pulse"},
+    )
+
+
+def leds_match():
+    return requests.post(
+        f"{API_HOST}/leds/configure",
+        verify=False,
+        json={"on": True, "color": "14, 218, 62", "preset": None},
+    )
+
+
+def turn_off_leds():
+    return requests.post(f"{API_HOST}/leds/configure", verify=False, json={"on": False})
+
+
+def turn_on_leds():
+    return requests.post(
+        f"{API_HOST}/leds/configure",
+        verify=False,
+        json={"on": True, "color": "252, 255, 92", "preset": None},
+    )
+
+
+COMMAND_ALIASES = {
+    "toggle_inverter": [
+        "toggle inverter",
+        "toggle her",
+        "toggling her",
+        "try and murder",
+        "time to cook",
+        "time to cut",
+        "let's cook",
+        "let's go",
+        "what's cook",
+        "what cook",
+        "done cooking",
+    ],
+    "turn_off_leds": ["turn off lights", "good night"],
+    "turn_on_leds": ["turn on lights", "good morning"],
 }
+
+COMMAND_FUNCTIONS = {
+    "toggle_inverter": toggle_inverter,
+    "turn_off_leds": turn_off_leds,
+    "turn_on_leds": turn_on_leds,
+}
+
+COMMAND_MAP = {}
+for command_key, phrases in COMMAND_ALIASES.items():
+    func = COMMAND_FUNCTIONS[command_key]
+    for phrase in phrases:
+        COMMAND_MAP[phrase.lower()] = func
+
+
+def get_command_handler(spoken_text):
+    spoken_text = spoken_text.lower()
+    if spoken_text in COMMAND_MAP:
+        return COMMAND_MAP[spoken_text]
+    close = get_close_matches(spoken_text, COMMAND_MAP.keys(), n=1, cutoff=0.8)
+    if close:
+        return COMMAND_MAP[close[0]]
+    return None
+
 
 # === Audio Queue ===
 q = queue.Queue()
@@ -73,6 +132,7 @@ def main():
 
 
 def listen_for_command(recognizer):
+    leds_listening()
     print("Listening for command...")
     collected_audio = b""
 
@@ -90,13 +150,16 @@ def listen_for_command(recognizer):
     text = json.loads(result).get("text", "").lower()
     print(f"Heard: '{text}'")
 
-    for phrase, action in COMMAND_MAP.items():
-        if phrase in text:
-            print(f"Executing command: {phrase}")
-            action()
-            return
+    handler = get_command_handler(text)
+    if handler:
+        leds_match()
+        print(f"Executing command: {text}")
+        sleep(2)
+        handler()
+        return
 
     print("No matching command found.")
+    turn_off_leds()
 
 
 if __name__ == "__main__":
