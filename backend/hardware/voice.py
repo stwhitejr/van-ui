@@ -10,7 +10,7 @@ import os
 # === Config ===
 VOSK_MODEL_PATH = "/home/steve/models/vosk/vosk-model-small-en-us-0.15"
 WAKE_WORD = "jarvis"
-RATE = 16000
+RATE = 44100
 CHANNELS = 1
 
 togglerInverter = lambda: requests.post(
@@ -54,7 +54,7 @@ def main():
     print("Ready and listening...")
 
     with sd.RawInputStream(
-        device=1,  # Replace with your actual device index
+        device=1,
         samplerate=RATE,
         blocksize=512,
         dtype="int16",
