@@ -9,3 +9,4 @@ vosk
 requests
 board
 mpu6050
+pigpio

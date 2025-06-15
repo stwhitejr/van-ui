@@ -1,41 +1,81 @@
-import board
-import neopixel
+import pigpio
 import time
 import math
 
 
 class LEDController:
-    def __init__(self, num_leds=288, pin=board.D18, brightness=1.0):
+    def __init__(self, num_leds=288, pin=18, brightness=1.0):
         self.num_leds = num_leds
-        self.pixels = neopixel.NeoPixel(
-            pin, num_leds, brightness=brightness, auto_write=False
-        )
+        self.gpio_pin = pin
+        self.pi = pigpio.pi()
+        if not self.pi.connected:
+            raise Exception("Cannot connect to pigpio daemon")
+
+        # Store colors as (r, g, b)
+        self.leds = [(0, 0, 0)] * num_leds
         self.is_on = False
         self.color = (255, 255, 255)
-        self.brightness = brightness
+        self.brightness = max(0.0, min(1.0, brightness))
+
+    def _apply_brightness(self, color):
+        return tuple(int(c * self.brightness) for c in color)
+
+    def set_pixel(self, index, color):
+        if 0 <= index < self.num_leds:
+            leds_list = list(self.leds)
+            leds_list[index] = color
+            self.leds = tuple(leds_list)
+
+    def show(self):
+        # Prepare data in GRB order (WS2812 standard)
+        data = []
+        for r, g, b in self.leds:
+            r, g, b = self._apply_brightness((r, g, b))
+            data.extend([g, r, b])
+
+        self.pi.wave_add_new()
+        wf = []
+        for byte in data:
+            for i in range(8):
+                if byte & (1 << (7 - i)):
+                    # 1 bit
+                    wf.append(pigpio.pulse(1 << self.gpio_pin, 0, 0.8))
+                    wf.append(pigpio.pulse(0, 1 << self.gpio_pin, 0.45))
+                else:
+                    # 0 bit
+                    wf.append(pigpio.pulse(1 << self.gpio_pin, 0, 0.4))
+                    wf.append(pigpio.pulse(0, 1 << self.gpio_pin, 0.85))
+        self.pi.wave_add_generic(wf)
+        wid = self.pi.wave_create()
+        self.pi.wave_send_once(wid)
+        while self.pi.wave_tx_busy():
+            time.sleep(0.001)
+        self.pi.wave_delete(wid)
+
+    def fill(self, color):
+        self.leds = [color] * self.num_leds
+        self.show()
 
     def turn_on(self):
         self.is_on = True
-        self.pixels.fill(self.color)
-        self.pixels.show()
+        self.fill(self.color)
 
     def turn_off(self):
         self.is_on = False
-        self.pixels.fill((0, 0, 0))
-        self.pixels.show()
+        self.clear()
+
+    def clear(self):
+        self.fill((0, 0, 0))
 
     def set_brightness(self, brightness_percent):
         self.brightness = max(0.0, min(1.0, brightness_percent / 100))
-        self.pixels.brightness = self.brightness
         if self.is_on:
-            self.pixels.fill(self.color)
-            self.pixels.show()
+            self.fill(self.color)
 
     def set_color(self, r, g, b):
         self.color = (r, g, b)
         if self.is_on:
-            self.pixels.fill(self.color)
-            self.pixels.show()
+            self.fill(self.color)
 
     def status(self):
         return {
@@ -67,22 +107,28 @@ class LEDController:
 
         for j in range(256):
             for i in range(self.num_leds):
-                self.pixels[i] = wheel((i * 256 // self.num_leds + j) & 255)
-            self.pixels.show()
+                self.leds = list(self.leds)
+                self.leds[i] = wheel((i * 256 // self.num_leds + j) & 255)
+            self.leds = tuple(self.leds)
+            self.show()
             time.sleep(wait)
 
     def _color_chase(self, color, wait):
         for i in range(self.num_leds):
-            self.pixels[i] = color
-            self.pixels.show()
+            leds_list = list(self.leds)
+            leds_list[i] = color
+            self.leds = tuple(leds_list)
+            self.show()
             time.sleep(wait)
-        self.pixels.fill((0, 0, 0))
-        self.pixels.show()
+        self.clear()
 
     def _pulse(self, color, steps=50, delay=0.02):
         for i in range(steps):
             factor = math.sin(math.pi * i / steps)
             scaled_color = tuple(int(c * factor) for c in color)
-            self.pixels.fill(scaled_color)
-            self.pixels.show()
+            self.fill(scaled_color)
             time.sleep(delay)
+
+    def cleanup(self):
+        self.clear()
+        self.pi.stop()
