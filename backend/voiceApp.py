@@ -17,7 +17,7 @@ RATE = 16000
 CHANNELS = 1
 
 togglerInverter = lambda: requests.post(
-    "https://172.20.10.6:5000/inverter/toggle", verify=False
+    "http://172.20.10.6:5000/inverter/toggle", verify=False
 )
 
 # === Command Map ===
