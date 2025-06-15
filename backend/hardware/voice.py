@@ -54,7 +54,7 @@ def main():
     print("Ready and listening...")
 
     with sd.RawInputStream(
-        device=3,
+        device=1,
         samplerate=RATE,
         blocksize=512,
         dtype="int16",
