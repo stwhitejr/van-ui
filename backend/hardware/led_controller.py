@@ -27,6 +27,13 @@ class LEDController:
             self.leds = tuple(leds_list)
 
     def show(self):
+        if not self.pi.connected:
+            self.pi = pigpio.pi()
+            if not self.pi.connected:
+                raise Exception("Cannot connect to pigpio daemon")
+
+        self.pi.wave_add_new()
+
         # Prepare data in GRB order (WS2812 standard)
         data = []
         for r, g, b in self.leds:
