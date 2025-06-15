@@ -122,4 +122,4 @@ if __name__ == "__main__":
     if VoiceRecognition:
         Thread(target=VoiceRecognition, daemon=True).start()
 
-    app.run(host="0.0.0.0", port=5000, debug=True, ssl_context=("cert.pem", "key.pem"))
+    app.run(host="0.0.0.0", port=5000, debug=True)
