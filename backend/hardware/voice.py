@@ -54,12 +54,14 @@ def main():
     print("Ready and listening...")
 
     with sd.RawInputStream(
+        device=1,  # Replace with your actual device index
         samplerate=RATE,
         blocksize=512,
         dtype="int16",
-        channels=CHANNELS,
+        channels=1,
         callback=audio_callback,
     ):
+
         while True:
             pcm = q.get()
             pcm_unpacked = struct.unpack_from("h" * (len(pcm) // 2), pcm)
