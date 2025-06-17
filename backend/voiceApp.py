@@ -41,6 +41,14 @@ def leds_match():
     )
 
 
+def leds_no_match():
+    return requests.post(
+        f"{API_HOST}/leds/configure",
+        verify=False,
+        json={"on": True, "color": "216, 8, 8", "preset": None},
+    )
+
+
 def turn_off_leds():
     return requests.post(f"{API_HOST}/leds/configure", verify=False, json={"on": False})
 
@@ -159,6 +167,8 @@ def listen_for_command(recognizer):
         return
 
     print("No matching command found.")
+    leds_no_match()
+    sleep(2)
     turn_off_leds()
 
 

@@ -28,7 +28,7 @@ const ledsApi = createApi({
   }),
   endpoints: (build) => ({
     ledsStatus: build.query<LedResponse, void>({
-      query: () => ({url: `/`}),
+      query: () => ({url: ``}),
     }),
     configureLeds: build.mutation<LedResponse, LedConfigureRequest>({
       query: (body) => ({url: `/configure`, method: 'post', body}),
