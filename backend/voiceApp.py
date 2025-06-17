@@ -1,3 +1,6 @@
+with open("/tmp/voiceapp_debug.log", "a") as f:
+    f.write("voiceApp.py started\n")
+
 import pvporcupine
 import sounddevice as sd
 import queue

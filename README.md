@@ -67,8 +67,8 @@ Description=Van UI
 After=network.target
 
 [Service]
-WorkingDirectory=/home/steve/van-ui
-ExecStart=/home/steve/van-ui/backend/venv/bin/python /home/steve/van-ui/backend/app.py
+WorkingDirectory=/home/steve/Desktop/van-ui
+ExecStart=/home/steve/Desktop/van-ui/backend/venv/bin/python /home/steve/Desktop/van-ui/backend/app.py
 StandardOutput=inherit
 StandardError=inherit
 Restart=always
@@ -86,13 +86,15 @@ Add to file
 ```
 [Unit]
 Description=Van Voice App
-After=network.target
+After=sound.target
 
 [Service]
-WorkingDirectory=/home/steve/van-ui
-ExecStart=/home/steve/van-ui/backend/venv/bin/python /home/steve/van-ui/backend/voiceApp.py
-StandardOutput=inherit
-StandardError=inherit
+Environment="XDG_RUNTIME_DIR=/run/user/1000"
+WorkingDirectory=/home/steve/Desktop/van-ui
+ExecStartPre=/bin/sleep 5
+ExecStart=/home/steve/Desktop/van-ui/backend/venv/bin/python /home/steve/Desktop/van-ui/backend/voiceApp.py
+StandardOutput=journal
+StandardError=journal
 Restart=always
 User=steve
 Environment=NODE_ENV=production
