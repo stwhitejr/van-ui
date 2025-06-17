@@ -21,29 +21,18 @@ try:
 
     API_HOST = "http://172.20.10.6:5000"
 
+    def led_status():
+        return requests.get(f"{API_HOST}/leds", verify=False)
+
+    def led_configure(payload):
+        return requests.post(
+            f"{API_HOST}/leds/configure",
+            verify=False,
+            json=payload,
+        )
+
     def toggle_inverter():
         return requests.post(f"{API_HOST}/inverter/toggle", verify=False)
-
-    def leds_listening():
-        return requests.post(
-            f"{API_HOST}/leds/configure",
-            verify=False,
-            json={"on": True, "color": "255, 255, 255", "preset": "pulse"},
-        )
-
-    def leds_match():
-        return requests.post(
-            f"{API_HOST}/leds/configure",
-            verify=False,
-            json={"on": True, "color": "14, 218, 62", "preset": None},
-        )
-
-    def leds_no_match():
-        return requests.post(
-            f"{API_HOST}/leds/configure",
-            verify=False,
-            json={"on": True, "color": "216, 8, 8", "preset": None},
-        )
 
     def turn_off_leds():
         return requests.post(
@@ -131,7 +120,8 @@ try:
                     listen_for_command(recognizer)
 
     def listen_for_command(recognizer):
-        leds_listening()
+        originalLedState = led_status()
+        led_configure({"on": True, "color": "255, 255, 255", "preset": "pulse"})
         print("Listening for command...")
         collected_audio = b""
 
@@ -151,16 +141,16 @@ try:
 
         handler = get_command_handler(text)
         if handler:
-            leds_match()
+            led_configure({"on": True, "color": "14, 218, 62", "preset": None})
             print(f"Executing command: {text}")
             sleep(2)
             handler()
             return
 
         print("No matching command found.")
-        leds_no_match()
+        led_configure({"on": True, "color": "216, 8, 8", "preset": None})
         sleep(2)
-        turn_off_leds()
+        led_configure(originalLedState)
 
     if __name__ == "__main__":
         main()
