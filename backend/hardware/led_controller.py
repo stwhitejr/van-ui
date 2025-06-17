@@ -6,7 +6,7 @@ import threading
 
 
 class LEDController:
-    def __init__(self, num_leds=288, pin=board.D18, brightness=1.0):
+    def __init__(self, num_leds=288, pin=board.D18, brightness=0.5):
         self.num_leds = num_leds
         self.pixels = neopixel.NeoPixel(
             pin, num_leds, brightness=brightness, auto_write=False
