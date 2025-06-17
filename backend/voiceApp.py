@@ -46,6 +46,20 @@ try:
             json={"on": True, "color": "252, 255, 92", "preset": None},
         )
 
+    def rainbow_leds():
+        return requests.post(
+            f"{API_HOST}/leds/configure",
+            verify=False,
+            json={"on": True, "color": "252, 255, 92", "preset": "rainbow"},
+        )
+
+    def blue_leds():
+        return requests.post(
+            f"{API_HOST}/leds/configure",
+            verify=False,
+            json={"on": True, "color": "7, 28, 255", "preset": None},
+        )
+
     COMMAND_ALIASES = {
         "toggle_inverter": [
             "toggle inverter",
@@ -62,6 +76,8 @@ try:
         ],
         "turn_off_leds": ["turn off lights", "good night"],
         "turn_on_leds": ["turn on lights", "good morning"],
+        "rainbow_leds": ["i'm happy", "happy", "let's dance", "dance"],
+        "blue_leds": ["i'm sad", "sad", "i'm blue", "i'm feeling blue"],
     }
 
     COMMAND_FUNCTIONS = {
