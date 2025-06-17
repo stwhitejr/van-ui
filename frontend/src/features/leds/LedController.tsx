@@ -187,7 +187,7 @@ const LedController = () => {
   });
 
   return (
-    <RtkQueryGate {...statusResponse}>
+    <RtkQueryGate checkFetching {...statusResponse}>
       {statusResponse.data && <LedControllerForm data={statusResponse.data} />}
     </RtkQueryGate>
   );
