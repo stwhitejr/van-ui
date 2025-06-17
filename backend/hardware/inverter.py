@@ -18,6 +18,10 @@ def toggleInverter():
         return {"on": relay.is_active, "success": False, "error": str(e)}
 
 
+def getRelayStatus():
+    return relay.is_active
+
+
 def toggleInverterMock():
     mock = {"on": True, "success": True}
     return mock

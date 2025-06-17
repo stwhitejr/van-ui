@@ -13,7 +13,7 @@ def checkLevel():
     import math
 
     # These should be readings you get when the van is actually level. This depends on how you mount the sensor.
-    CALIBRATION_PITCH_OFFSET = 100
+    CALIBRATION_PITCH_OFFSET = -100
     CALIBRATION_ROLL_OFFSET = 8
 
     sensor = mpu6050(0x68)

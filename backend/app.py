@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request, send_from_directory
 from hardware import (
     LevelSensor,
     InverterToggle,
+    getRelayStatus,
     Smartshunt,
     LEDController,
 )
@@ -29,6 +30,11 @@ def toggleInverter():
         leds.turn_off()
 
     return jsonify(data)
+
+
+@app.route("/inverter", methods=["GET"])
+def relayStatus():
+    return jsonify({"on": getRelayStatus()})
 
 
 @app.route("/smartshunt/data", methods=["GET"])

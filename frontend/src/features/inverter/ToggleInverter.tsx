@@ -1,12 +1,12 @@
-import {useToggleInverterMutation} from './api';
-import {Box, Grid2} from '@mui/material';
+import {useGetInverterStatusQuery, useToggleInverterMutation} from './api';
 import {useEffect} from 'react';
 import useToast from '@root/features/toast/useToast';
-import PillBox from '@root/components/PillBox';
 import Text from '@root/components/Text';
 import Button from '@root/components/Button';
+import RtkQueryGate from '@root/components/RtkQueryGate';
 
 const ToggleInverter = () => {
+  const inverterStatusResponse = useGetInverterStatusQuery();
   const [toggle, response] = useToggleInverterMutation();
   const setToast = useToast();
 
@@ -22,10 +22,16 @@ const ToggleInverter = () => {
     }
   }, [response, setToast]);
 
+  const isOn = response.data
+    ? response.data?.on
+    : inverterStatusResponse.data?.on;
+
   return (
-    <Button onClick={toggle} sx={{height: '100%'}}>
-      <Text size="large">Turn Inverter {response.data?.on ? 'Off' : 'On'}</Text>
-    </Button>
+    <RtkQueryGate {...inverterStatusResponse}>
+      <Button onClick={toggle} sx={{height: '100%'}}>
+        <Text size="large">Turn Inverter {isOn ? 'On' : 'Off'}</Text>
+      </Button>
+    </RtkQueryGate>
   );
 };
 

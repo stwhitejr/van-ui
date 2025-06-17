@@ -182,7 +182,9 @@ const LedControllerForm = ({data}: {data: LedResponse}) => {
 };
 
 const LedController = () => {
-  const statusResponse = useLedsStatusQuery();
+  const statusResponse = useLedsStatusQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
 
   return (
     <RtkQueryGate {...statusResponse}>
