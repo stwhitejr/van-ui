@@ -6,7 +6,9 @@ import Button from '@root/components/Button';
 import RtkQueryGate from '@root/components/RtkQueryGate';
 
 const ToggleInverter = () => {
-  const inverterStatusResponse = useGetInverterStatusQuery();
+  const inverterStatusResponse = useGetInverterStatusQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
   const [toggle, response] = useToggleInverterMutation();
   const setToast = useToast();
 
@@ -29,7 +31,7 @@ const ToggleInverter = () => {
   return (
     <RtkQueryGate {...inverterStatusResponse}>
       <Button onClick={toggle} sx={{height: '100%'}}>
-        <Text size="large">Turn Inverter {isOn ? 'On' : 'Off'}</Text>
+        <Text size="large">Turn Inverter {isOn ? 'Off' : 'On'}</Text>
       </Button>
     </RtkQueryGate>
   );
