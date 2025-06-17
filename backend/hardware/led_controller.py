@@ -79,10 +79,10 @@ class LEDController:
                 self._rainbow_cycle(0.001)
         elif name == "chase":
             while not self._stop_event.is_set() and self.preset == "chase":
-                self._color_chase((0, 255, 0), 0.05)
+                self._color_chase(self.color, 0.05)
         elif name == "pulse":
             while not self._stop_event.is_set() and self.preset == "pulse":
-                self._pulse((0, 0, 255))
+                self._pulse(self.color)
         else:
             raise ValueError(f"Unknown preset: {name}")
 

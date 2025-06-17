@@ -25,6 +25,7 @@ def toggleInverter():
     print("inverter data", data)
     if data.get("on"):
         leds.turn_on()
+        leds.set_color(228, 255, 4)
         leds.run_preset("chase")
     else:
         leds.turn_off()
