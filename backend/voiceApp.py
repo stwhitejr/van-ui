@@ -120,7 +120,7 @@ try:
                     listen_for_command(recognizer)
 
     def listen_for_command(recognizer):
-        originalLedState = led_status()
+        originalLedState = led_status().json()
         led_configure({"on": True, "color": "255, 255, 255", "preset": "pulse"})
         print("Listening for command...")
         collected_audio = b""
