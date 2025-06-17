@@ -67,7 +67,7 @@ const LevelData = ({
 
 const LevelSensor = () => {
   const response = useGetLevelSensorDataQuery(undefined, {
-    pollingInterval: 5000,
+    pollingInterval: 15000,
   });
 
   return (

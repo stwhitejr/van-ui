@@ -22,7 +22,7 @@ const DataBox = ({children}: {children: ReactNode}) => {
 
 const SmartShuntDashboard = () => {
   const response = useGetSmartShuntDataQuery(undefined, {
-    pollingInterval: 5000,
+    pollingInterval: 20000,
   });
   return (
     <RtkQueryGate {...response}>
