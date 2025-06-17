@@ -47,7 +47,7 @@ const LedControllerForm = ({data}: {data: LedResponse}) => {
         }
   );
   const [preset, setPreset] = useState<null | LedConfigureRequest['preset']>(
-    null
+    data.preset || null
   );
 
   const memoizedValue = useMemo(
