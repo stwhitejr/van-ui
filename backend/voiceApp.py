@@ -84,6 +84,8 @@ try:
         "toggle_inverter": toggle_inverter,
         "turn_off_leds": turn_off_leds,
         "turn_on_leds": turn_on_leds,
+        "blue_leds": blue_leds,
+        "rainbow_leds": rainbow_leds,
     }
 
     COMMAND_MAP = {}
