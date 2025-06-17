@@ -7,11 +7,13 @@ import {FetchBaseQueryError} from '@reduxjs/toolkit/query';
 export interface RtkQueryGateProps {
   children: ReactNode;
   isLoading?: boolean;
+  isFetching?: boolean;
   error?: SerializedError | FetchBaseQueryError;
+  checkFetching?: boolean;
 }
 
 const RtkQueryGate = (props: RtkQueryGateProps) => {
-  if (props.isLoading) {
+  if (props.isLoading || (props.checkFetching && props.isFetching)) {
     return <Loading />;
   }
   if (props.error) {

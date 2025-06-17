@@ -1,5 +1,19 @@
 from flask import Flask, jsonify, request, send_from_directory
-from hardware import LevelSensor, InverterToggle, Smartshunt
+from hardware import (
+    LevelSensor,
+    InverterToggle,
+    getRelayStatus,
+    Smartshunt,
+    LEDController,
+)
+import time
+
+from dotenv import load_dotenv
+from threading import Thread
+
+load_dotenv()
+
+leds = LEDController()
 
 app = Flask(__name__, static_folder="../dist")
 
@@ -8,7 +22,20 @@ app = Flask(__name__, static_folder="../dist")
 @app.route("/inverter/toggle", methods=["POST"])
 def toggleInverter():
     data = InverterToggle()
+    print("inverter data", data)
+    if data.get("on"):
+        leds.turn_on()
+        leds.set_color(228, 255, 4)
+        leds.run_preset("chase")
+    else:
+        leds.turn_off()
+
     return jsonify(data)
+
+
+@app.route("/inverter", methods=["GET"])
+def relayStatus():
+    return jsonify({"on": getRelayStatus()})
 
 
 @app.route("/smartshunt/data", methods=["GET"])
@@ -23,10 +50,69 @@ def levelsensorData():
     return jsonify(data)
 
 
-# @app.route("/api/data", methods=["POST"])
-# def get_data():
-#     data = request.json
-#     return jsonify({"you_sent": data})
+@app.route("/leds", methods=["GET"])
+def ledsStatus():
+    return jsonify(leds.status())
+
+
+@app.route("/leds/configure", methods=["POST"])
+def configureLeds():
+    """
+    Expected request payload:
+    {
+      "on": true,
+      "brightness": 70,
+      "color": "#ffcc00",
+      "sleep": 5,
+      "preset": "rainbow"
+    }
+    """
+    data = request.json
+
+    print("leds class instance log:", leds)
+    print("leds request log:", data)
+
+    on = data.get("on")
+    brightness = data.get("brightness")
+    color = data.get("color")
+    sleep_duration = data.get("sleep", 0)
+
+    if brightness is not None:
+        leds.set_brightness(brightness)
+
+    if color:
+        try:
+            if isinstance(color, str):
+                # Handle string format "255, 255, 255"
+                r, g, b = [int(c.strip()) for c in color.split(",")]
+            elif isinstance(color, list) and len(color) == 3:
+                # Handle list format [255, 255, 255]
+                r, g, b = color
+            else:
+                raise ValueError("Unsupported color format")
+
+            leds.set_color(r, g, b)
+
+        except Exception as e:
+            return jsonify({"error": f"Invalid color format: {str(e)}"}), 400
+
+    preset = data.get("preset")
+    if preset:
+        try:
+            leds.run_preset(preset)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+    if on is True:
+        leds.turn_on()
+    elif on is False:
+        leds.turn_off()
+
+    if sleep_duration:
+        time.sleep(sleep_duration)
+        leds.turn_off()
+
+    return jsonify(leds.status())
 
 
 # Frontend
@@ -41,4 +127,4 @@ def static_proxy(path):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)

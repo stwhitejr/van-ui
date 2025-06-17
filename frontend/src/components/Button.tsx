@@ -1,19 +1,25 @@
-import {ReactNode} from 'react';
+import {ComponentProps, ReactNode} from 'react';
 import PillBox from './PillBox';
+import {Box} from '@mui/material';
 
 export interface ButtonProps {
   children: ReactNode;
   onClick: () => void;
+  isActive?: boolean;
+  sx?: ComponentProps<typeof Box>['sx'];
 }
 
 const Button = (props: ButtonProps) => {
   return (
-    <div
-      style={{cursor: 'pointer', height: '100%'}}
+    <Box
+      sx={{
+        ...props.sx,
+        cursor: 'pointer',
+      }}
       onClick={() => props.onClick()}
     >
       <PillBox
-        gradiantVariation="button"
+        gradiantVariation={props.isActive ? 'activeButton' : 'button'}
         gradiantDirection="180deg"
         sx={{
           textAlign: 'center',
@@ -25,7 +31,7 @@ const Button = (props: ButtonProps) => {
       >
         {props.children}
       </PillBox>
-    </div>
+    </Box>
   );
 };
 

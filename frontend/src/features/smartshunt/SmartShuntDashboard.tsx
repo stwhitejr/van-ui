@@ -21,7 +21,9 @@ const DataBox = ({children}: {children: ReactNode}) => {
 };
 
 const SmartShuntDashboard = () => {
-  const response = useGetSmartShuntDataQuery();
+  const response = useGetSmartShuntDataQuery(undefined, {
+    pollingInterval: 20000,
+  });
   return (
     <RtkQueryGate {...response}>
       <Stack spacing={2} alignItems="center">
@@ -32,7 +34,11 @@ const SmartShuntDashboard = () => {
             borderRadius: '100%',
             textAlign: 'center',
             aspectRatio: 1 / 1,
-            width: '30vw',
+            width: {
+              xs: '50vw',
+              sm: '50vw',
+              md: '17vw',
+            },
             display: 'flex',
           }}
         >

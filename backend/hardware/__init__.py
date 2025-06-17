@@ -21,9 +21,11 @@ ON_PI = not args.mock and is_pi()
 
 if ON_PI:
     from .level_sensor import checkLevel as LevelSensor
-    from .inverter import toggleInverter as InverterToggle
+    from .inverter import toggleInverter as InverterToggle, getRelayStatus
     from .smartshunt import smartshunt as Smartshunt
+    from .led_controller import LEDController
 else:
     from .level_sensor import checkLevelMock as LevelSensor
-    from .inverter import toggleInverterMock as InverterToggle
+    from .inverter import toggleInverterMock as InverterToggle, getRelayStatus
     from .smartshunt import smartshuntMock as Smartshunt
+    from .led_controller_mock import MockLEDController as LEDController

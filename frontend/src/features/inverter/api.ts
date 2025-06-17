@@ -18,9 +18,13 @@ const inverterApi = createApi({
     toggleInverter: build.mutation<ToggleResponse, void>({
       query: () => ({url: `/toggle`, method: 'post'}),
     }),
+    getInverterStatus: build.query<{on: boolean}, void>({
+      query: () => ({url: ``}),
+    }),
   }),
 });
 
 export default inverterApi;
 
-export const {useToggleInverterMutation} = inverterApi;
+export const {useToggleInverterMutation, useGetInverterStatusQuery} =
+  inverterApi;
