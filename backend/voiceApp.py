@@ -60,6 +60,9 @@ try:
             json={"on": True, "color": "7, 28, 255", "preset": None},
         )
 
+    def toggle_lights():
+        return requests.post(f"{API_HOST}/lights/toggle", verify=False)
+
     COMMAND_ALIASES = {
         "toggle_inverter": [
             "toggle inverter",
@@ -74,10 +77,16 @@ try:
             "what cook",
             "done cooking",
         ],
-        "turn_off_leds": ["turn off lights", "good night"],
-        "turn_on_leds": ["turn on lights", "good morning"],
+        "turn_off_leds": ["turn off leds"],
+        "turn_on_leds": ["turn on leds"],
         "rainbow_leds": ["i'm happy", "happy", "let's dance", "dance"],
         "blue_leds": ["i'm sad", "sad", "i'm blue", "i'm feeling blue"],
+        "toggle_lights": [
+            "good morning",
+            "good night",
+            "turn on lights",
+            "turn off lights",
+        ],
     }
 
     COMMAND_FUNCTIONS = {
@@ -86,6 +95,7 @@ try:
         "turn_on_leds": turn_on_leds,
         "blue_leds": blue_leds,
         "rainbow_leds": rainbow_leds,
+        "toggle_lights": toggle_lights,
     }
 
     COMMAND_MAP = {}

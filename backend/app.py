@@ -2,9 +2,11 @@ from flask import Flask, jsonify, request, send_from_directory
 from hardware import (
     LevelSensor,
     InverterToggle,
-    getRelayStatus,
+    getInverterRelayStatus,
     Smartshunt,
     LEDController,
+    toggleLights,
+    getLightsRelayStatus,
 )
 import time
 from dotenv import load_dotenv
@@ -20,7 +22,6 @@ app = Flask(__name__, static_folder="../dist")
 @app.route("/inverter/toggle", methods=["POST"])
 def toggleInverter():
     data = InverterToggle()
-    print("inverter data", data)
     if data.get("on"):
         leds.turn_on()
         leds.set_color(228, 255, 4)
@@ -32,8 +33,19 @@ def toggleInverter():
 
 
 @app.route("/inverter", methods=["GET"])
-def relayStatus():
-    return jsonify({"on": getRelayStatus()})
+def inverterRelayStatus():
+    return jsonify({"on": getInverterRelayStatus()})
+
+
+@app.route("/lights/toggle", methods=["POST"])
+def toggleLightsEndpoint():
+    data = toggleLights()
+    return jsonify(data)
+
+
+@app.route("/lights", methods=["GET"])
+def lightsRelayStatus():
+    return jsonify({"on": getLightsRelayStatus()})
 
 
 @app.route("/smartshunt/data", methods=["GET"])

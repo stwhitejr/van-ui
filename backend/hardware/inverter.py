@@ -18,7 +18,7 @@ def toggleInverter():
         return {"on": relay.is_active, "success": False, "error": str(e)}
 
 
-def getRelayStatus():
+def getInverterRelayStatus():
     return relay.is_active
 
 
