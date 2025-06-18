@@ -19,7 +19,7 @@ try:
     RATE = 16000
     CHANNELS = 1
 
-    API_HOST = "http://172.20.10.6:5000"
+    API_HOST = "http://localhost:5000"
 
     def led_status():
         return requests.get(f"{API_HOST}/leds", verify=False)

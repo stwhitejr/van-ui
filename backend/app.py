@@ -7,9 +7,7 @@ from hardware import (
     LEDController,
 )
 import time
-
 from dotenv import load_dotenv
-from threading import Thread
 
 load_dotenv()
 
@@ -126,11 +124,5 @@ def static_proxy(path):
     return send_from_directory(app.static_folder, path)
 
 
-def runOnIp():
-    app.run(host="0.0.0.0", port=5000, debug=True)
-
-
 if __name__ == "__main__":
-    app.run(debug=True)
-
-    Thread(target=runOnIp, daemon=True).start()
+    app.run(host="0.0.0.0", port=5000, debug=True)
