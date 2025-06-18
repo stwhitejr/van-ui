@@ -3,8 +3,8 @@
   "short_name": "Van Dashboard",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#0a84ff",
+  "background_color": "#121112",
+  "theme_color": "#121112",
   "icons": [
     {
       "src": "/icons/192x192.png",

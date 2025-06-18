@@ -7,6 +7,7 @@ import {ComponentProps, ReactNode} from 'react';
 import van_front from '@root/assets/images/van_front.png';
 import van_side from '@root/assets/images/van_side.png';
 import Container from '@root/components/Container';
+import {RefreshIcon} from '@root/components/icons';
 
 const colorByRating = {
   Good: 'linear-gradient(0deg, #2ca650 0%,rgb(103, 216, 137) 100%)',
@@ -74,9 +75,14 @@ const LevelSensor = () => {
     <Container
       title="Level"
       additional={
-        <PillBox gradiantDirection="180deg">
-          <Text size="body">{response.data?.level_percent}%</Text>
-        </PillBox>
+        <Stack alignItems="center" flexDirection="row" useFlexGap spacing={2}>
+          <Box sx={{cursor: 'pointer'}} onClick={() => response.refetch()}>
+            <RefreshIcon />
+          </Box>
+          <PillBox gradiantDirection="180deg">
+            <Text size="body">{response.data?.level_percent}%</Text>
+          </PillBox>
+        </Stack>
       }
     >
       <RtkQueryGate {...response}>

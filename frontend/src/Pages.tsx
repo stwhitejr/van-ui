@@ -1,15 +1,13 @@
 import {Box, Grid2, Stack} from '@mui/material';
-import SmartShuntDashboard from '@root/features/smartshunt/SmartShuntDashboard';
-import ToggleInverter from '@root/features/inverter/ToggleInverter';
 import LevelSensor from '@root/features/level_sensor/LevelSensor';
-import './App.css';
+import '@root/App.css';
 import {useState} from 'react';
-import LedController from './features/leds/LedController';
-import Button from './components/Button';
-import Text from './components/Text';
-import Container from './components/Container';
+import LedController from '@root/features/leds/LedController';
+import Button from '@root/components/Button';
+import Text from '@root/components/Text';
 import LogoColor from '@root/assets/images/logo3.png';
-import {theme} from './App';
+import {theme} from '@root/App';
+import Battery from '@root/features/battery/Battery';
 
 const Pages = () => {
   const [pageNumber, setPageNumber] = useState(1);
@@ -113,12 +111,7 @@ const Pages = () => {
                 md: 0,
               }}
             >
-              <Container title="Battery Monitor">
-                <Stack spacing={2}>
-                  <SmartShuntDashboard />
-                  <ToggleInverter />
-                </Stack>
-              </Container>
+              <Battery />
             </Grid2>
           </Grid2>
         )}
