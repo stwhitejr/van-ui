@@ -79,9 +79,6 @@ def configureLeds():
     """
     data = request.json
 
-    print("leds class instance log:", leds)
-    print("leds request log:", data)
-
     on = data.get("on")
     brightness = data.get("brightness")
     color = data.get("color")
