@@ -177,8 +177,9 @@ def listen_for_command(recognizer):
     text = json.loads(result).get("text", "").lower()
     print(f"Heard: '{text}'")
 
-    with open("inverter.txt", "a") as file:
-        file.write(f'"{text},\n"')
+    if text != "":
+        with open("inverter.txt", "a") as file:
+            file.write(f'"{text}",\n')
 
     # handler = get_command_handler(text)
     # if handler:
