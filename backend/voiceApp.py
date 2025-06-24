@@ -166,13 +166,16 @@ try:
         text = json.loads(result).get("text", "").lower()
         print(f"Heard: '{text}'")
 
-        handler = get_command_handler(text)
-        if handler:
-            led_configure({"on": True, "color": "14, 218, 62", "preset": None})
-            print(f"Executing command: {text}")
-            sleep(2)
-            handler()
-            return
+        with open("inverter.txt", "a") as file:
+            file.write(f'"{text},\n"')
+
+        # handler = get_command_handler(text)
+        # if handler:
+        #     led_configure({"on": True, "color": "14, 218, 62", "preset": None})
+        #     print(f"Executing command: {text}")
+        #     sleep(2)
+        #     handler()
+        #     return
 
         print("No matching command found.")
         led_configure({"on": True, "color": "216, 8, 8", "preset": None})
