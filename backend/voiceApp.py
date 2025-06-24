@@ -95,8 +95,8 @@ COMMAND_ALIASES = {
         "reverse the polarity",
         "the polarity",
     ],
-    "turn_off_leds": ["turn off leds", "leds off"],
-    "turn_on_leds": ["turn on leds", "leds on"],
+    "turn_off_leds": ["turn off leds", "leds off", "strip off", "reset"],
+    "turn_on_leds": ["turn on leds", "leds on", "strip on"],
     "rainbow_leds": ["i'm happy", "happy", "let's dance", "dance"],
     "blue_leds": ["i'm sad", "sad", "i'm blue", "i'm feeling blue"],
     "toggle_lights": [
