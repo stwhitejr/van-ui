@@ -265,13 +265,13 @@ def listen_for_command(recognizer):
     if handler:
         led_configure({"on": True, "color": "14, 218, 62", "preset": None})
         print(f"Executing command: {text}")
-        sleep(2)
+        sleep(0.5)
         handler()
         return
 
     print("No matching command found.")
     led_configure({"on": True, "color": "216, 8, 8", "preset": None})
-    sleep(2)
+    sleep(0.5)
     led_configure(originalLedState)
 
 
