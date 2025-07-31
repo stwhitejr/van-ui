@@ -10,7 +10,7 @@ const appApi = createApi({
   }),
   endpoints: (build) => ({
     killApp: build.mutation<void, void>({
-      query: () => ({url: `/kill`}),
+      query: () => ({url: `/kill`, method: 'post'}),
     }),
   }),
 });

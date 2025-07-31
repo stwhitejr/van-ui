@@ -13,8 +13,8 @@ def checkLevel():
     import math
 
     # These should be readings you get when the van is actually level. This depends on how you mount the sensor.
-    CALIBRATION_PITCH_OFFSET = -83
-    CALIBRATION_ROLL_OFFSET = 0
+    CALIBRATION_PITCH_OFFSET = 0
+    CALIBRATION_ROLL_OFFSET = 90
 
     sensor = mpu6050(0x68)
     accel_data = sensor.get_accel_data()
@@ -40,8 +40,8 @@ def checkLevel():
     level_percent = round(level_percent, 2)
 
     return {
-        "pitch": abs(round(pitch, 2)),
-        "roll": abs(round(roll, 2)),
+        "pitch": round(pitch, 2),
+        "roll": round(roll, 2),
         "level_percent": level_percent,
         "pitch_rating": getRating(pitch),
         "roll_rating": getRating(roll),
