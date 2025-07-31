@@ -64,7 +64,6 @@ def led_status():
 
 
 def led_configure(payload):
-    confirm()
     return requests.post(
         f"{API_HOST}/leds/configure",
         verify=False,
