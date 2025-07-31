@@ -23,7 +23,7 @@ CHANNELS = 1
 
 API_HOST = "http://localhost:5000"
 
-AUDIO_PATH = "/home/steve/audio"
+AUDIO_PATH = "/home/steve/Desktop/van-ui/audio"
 AUDIO_CONFIRM_PATH = AUDIO_PATH + "/confirm"
 AUDIO_GREET_PATH = AUDIO_PATH + "/greet"
 
