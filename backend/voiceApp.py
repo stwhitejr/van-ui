@@ -230,6 +230,8 @@ def listen_for_command(recognizer):
     collected_audio = b""
 
     greet()
+    sleep(0.5)
+    text = ""
 
     # Listen for a few seconds
     for _ in range(int((RATE / 1024) * 4)):
