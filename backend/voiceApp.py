@@ -190,6 +190,14 @@ def get_command_handler(spoken_text):
 q = queue.Queue()
 
 
+def flush_audio_queue():
+    while not q.empty():
+        try:
+            q.get_nowait()
+        except queue.Empty:
+            break
+
+
 def audio_callback(indata, frames, time, status):
     q.put(bytes(indata))
 
@@ -230,7 +238,8 @@ def listen_for_command(recognizer):
     collected_audio = b""
 
     greet()
-    sleep(0.5)
+    sleep(0.2)
+    flush_audio_queue()
     text = ""
 
     # Listen for a few seconds
