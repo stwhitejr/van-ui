@@ -33,11 +33,13 @@ def play_audio(file_path, shouldThread):
         pygame.mixer.init()
         pygame.mixer.music.load(file_path)
         pygame.mixer.music.play()
+        while pygame.mixer.music.get_busy():
+            sleep(0.1)
 
     if shouldThread:
         Thread(target=_play, daemon=True).start()
     else:
-        _play
+        _play()
 
 
 def play_random_from_folder(folder_path, shouldThread):
@@ -219,7 +221,6 @@ def main():
             pcm_unpacked = struct.unpack_from("h" * (len(pcm) // 2), pcm)
             if porcupine.process(pcm_unpacked) >= 0:
                 print("Wake word detected!")
-                greet()
                 listen_for_command(recognizer)
 
 
@@ -229,6 +230,8 @@ def listen_for_command(recognizer):
     print("Listening for command...")
     collected_audio = b""
 
+    greet()
+
     # Listen for a few seconds
     for _ in range(50):
         try:
@@ -237,7 +240,10 @@ def listen_for_command(recognizer):
             break
         collected_audio += data
         if recognizer.AcceptWaveform(data):
-            break
+            result = json.loads(recognizer.Result())
+            text = result.get("text", "").strip()
+            if text:
+                break
 
     result = recognizer.FinalResult()
     text = json.loads(result).get("text", "").lower()
