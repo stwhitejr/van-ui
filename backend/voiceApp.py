@@ -9,7 +9,7 @@ import os
 from dotenv import load_dotenv
 from time import sleep
 from difflib import get_close_matches
-from playsound import playsound
+import pygame
 from threading import Thread
 import random
 
@@ -30,7 +30,9 @@ AUDIO_GREET_PATH = AUDIO_PATH + "/greet"
 
 def play_audio(file_path, shouldThread):
     def _play():
-        playsound(file_path)
+        pygame.mixer.init()
+        pygame.mixer.music.load(file_path)
+        pygame.mixer.music.play()
 
     if shouldThread:
         Thread(target=_play, daemon=True).start()

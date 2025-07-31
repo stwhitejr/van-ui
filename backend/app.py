@@ -64,7 +64,6 @@ def lightsRelayStatus():
 def smartshunData():
     data = Smartshunt()
     json = jsonify(data)
-    print("smartshunt:" + json)
     return json
 
 
