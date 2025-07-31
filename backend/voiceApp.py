@@ -126,6 +126,7 @@ COMMAND_ALIASES = {
         "what's cook",
         "what cook",
         "done cooking",
+        "it's correct",
         "what",
         "let's go",
         "that's good",
@@ -238,7 +239,6 @@ def listen_for_command(recognizer):
     collected_audio = b""
 
     greet()
-    sleep(0.2)
     flush_audio_queue()
     text = ""
 
