@@ -9,6 +9,9 @@ import os
 from dotenv import load_dotenv
 from time import sleep
 from difflib import get_close_matches
+from playsound import playsound
+from threading import Thread
+import random
 
 load_dotenv()
 
@@ -20,12 +23,44 @@ CHANNELS = 1
 
 API_HOST = "http://localhost:5000"
 
+AUDIO_PATH = "/home/steve/audio"
+AUDIO_CONFIRM_PATH = AUDIO_PATH + "/confirm"
+AUDIO_GREET_PATH = AUDIO_PATH + "/greet"
+
+
+def play_audio(file_path, shouldThread):
+    def _play():
+        playsound(file_path)
+
+    if shouldThread:
+        Thread(target=_play, daemon=True).start()
+    else:
+        _play
+
+
+def play_random_from_folder(folder_path, shouldThread):
+    files = [f for f in os.listdir(folder_path) if f.lower().endswith((".mp3", ".wav"))]
+    if not files:
+        print(f"No audio files found in {folder_path}")
+        return
+    selected = random.choice(files)
+    play_audio(os.path.join(folder_path, selected), shouldThread)
+
+
+def greet():
+    play_random_from_folder(AUDIO_GREET_PATH, False)
+
+
+def confirm():
+    play_random_from_folder(AUDIO_CONFIRM_PATH, True)
+
 
 def led_status():
     return requests.get(f"{API_HOST}/leds", verify=False)
 
 
 def led_configure(payload):
+    confirm()
     return requests.post(
         f"{API_HOST}/leds/configure",
         verify=False,
@@ -34,14 +69,17 @@ def led_configure(payload):
 
 
 def toggle_inverter():
+    confirm()
     return requests.post(f"{API_HOST}/inverter/toggle", verify=False)
 
 
 def turn_off_leds():
+    confirm()
     return requests.post(f"{API_HOST}/leds/configure", verify=False, json={"on": False})
 
 
 def turn_on_leds():
+    confirm()
     return requests.post(
         f"{API_HOST}/leds/configure",
         verify=False,
@@ -50,6 +88,7 @@ def turn_on_leds():
 
 
 def rainbow_leds():
+    confirm()
     return requests.post(
         f"{API_HOST}/leds/configure",
         verify=False,
@@ -58,6 +97,7 @@ def rainbow_leds():
 
 
 def blue_leds():
+    confirm()
     return requests.post(
         f"{API_HOST}/leds/configure",
         verify=False,
@@ -66,6 +106,7 @@ def blue_leds():
 
 
 def toggle_lights():
+    confirm()
     return requests.post(f"{API_HOST}/lights/toggle", verify=False)
 
 
@@ -94,12 +135,7 @@ COMMAND_ALIASES = {
         "reverse",
         "reverse the polarity",
         "the polarity",
-    ],
-    "turn_off_leds": ["turn off leds", "leds off", "strip off", "reset"],
-    "turn_on_leds": ["turn on leds", "leds on", "strip on"],
-    "rainbow_leds": ["i'm happy", "happy", "let's dance", "dance"],
-    "blue_leds": ["i'm sad", "sad", "i'm blue", "i'm feeling blue"],
-    "toggle_lights": [
+        # Move these to toggle_lights if i ever add another relay for the main lights in the van
         "turn on lights",
         "turn off lights",
         "my",
@@ -114,6 +150,11 @@ COMMAND_ALIASES = {
         "good night",
         "the morning",
     ],
+    "turn_off_leds": ["turn off leds", "leds off", "strip off", "reset"],
+    "turn_on_leds": ["turn on leds", "leds on", "strip on"],
+    "rainbow_leds": ["i'm happy", "happy", "let's dance", "dance"],
+    "blue_leds": ["i'm sad", "sad", "i'm blue", "i'm feeling blue"],
+    "toggle_lights": [],
 }
 
 COMMAND_FUNCTIONS = {
@@ -176,6 +217,7 @@ def main():
             pcm_unpacked = struct.unpack_from("h" * (len(pcm) // 2), pcm)
             if porcupine.process(pcm_unpacked) >= 0:
                 print("Wake word detected!")
+                greet()
                 listen_for_command(recognizer)
 
 
