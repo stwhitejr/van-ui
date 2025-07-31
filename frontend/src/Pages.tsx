@@ -8,9 +8,12 @@ import Text from '@root/components/Text';
 import LogoColor from '@root/assets/images/logo3.png';
 import {theme} from '@root/App';
 import Battery from '@root/features/battery/Battery';
+import {useKillAppMutation} from './api';
 
 const Pages = () => {
   const [pageNumber, setPageNumber] = useState(1);
+
+  const [killApp] = useKillAppMutation();
   return (
     <Box
       sx={{
@@ -75,6 +78,9 @@ const Pages = () => {
               onClick={() => setPageNumber(2)}
             >
               <Text size="body">LEDs</Text>
+            </Button>
+            <Button isActive={pageNumber === 2} onClick={() => killApp()}>
+              <Text size="body">Close</Text>
             </Button>
           </Stack>
         </Stack>

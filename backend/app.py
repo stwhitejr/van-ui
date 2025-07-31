@@ -10,6 +10,8 @@ from hardware import (
 )
 import time
 from dotenv import load_dotenv
+import subprocess
+
 
 load_dotenv()
 
@@ -32,6 +34,16 @@ def toggleInverter():
     return jsonify(data)
 
 
+@app.route("/app/kill", methods=["POST"])
+def killFrontend():
+    try:
+        subprocess.run(["pkill", "chromium"], check=True)
+    except subprocess.CalledProcessError:
+        print("Chromium was not running.")
+
+    return jsonify(True)
+
+
 @app.route("/inverter", methods=["GET"])
 def inverterRelayStatus():
     return jsonify({"on": getInverterRelayStatus()})
@@ -51,7 +63,9 @@ def lightsRelayStatus():
 @app.route("/smartshunt/data", methods=["GET"])
 def smartshunData():
     data = Smartshunt()
-    return jsonify(data)
+    json = jsonify(data)
+    print("smartshunt:" + json)
+    return json
 
 
 @app.route("/level_sensor/data", methods=["GET"])

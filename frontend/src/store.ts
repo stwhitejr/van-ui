@@ -5,6 +5,7 @@ import smartshuntApi from '@root/features/smartshunt/api';
 import levelsensorApi from '@root/features/level_sensor/api';
 import ledsApi from '@root/features/leds/api';
 import {setupListeners} from '@reduxjs/toolkit/query';
+import appApi from './api';
 
 export const createStore = (preloadedState?: Record<string, unknown>) => {
   const defaultConfig = {
@@ -14,6 +15,7 @@ export const createStore = (preloadedState?: Record<string, unknown>) => {
       [smartshuntApi.reducerPath]: smartshuntApi.reducer,
       [levelsensorApi.reducerPath]: levelsensorApi.reducer,
       [ledsApi.reducerPath]: ledsApi.reducer,
+      [appApi.reducerPath]: appApi.reducer,
     },
     middleware: (getDefaultMiddleware) => [
       ...getDefaultMiddleware(),
@@ -21,6 +23,7 @@ export const createStore = (preloadedState?: Record<string, unknown>) => {
       smartshuntApi.middleware,
       levelsensorApi.middleware,
       ledsApi.middleware,
+      appApi.middleware,
     ],
   };
 
