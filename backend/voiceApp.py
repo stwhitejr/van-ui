@@ -232,7 +232,7 @@ def listen_for_command(recognizer):
     greet()
 
     # Listen for a few seconds
-    for _ in range(50):
+    for _ in range(int((RATE / 1024) * 4)):
         try:
             data = q.get(timeout=1)
         except queue.Empty:
@@ -241,12 +241,14 @@ def listen_for_command(recognizer):
         if recognizer.AcceptWaveform(data):
             result = json.loads(recognizer.Result())
             text = result.get("text", "").strip()
-            if text:
+            print(f"Partial result: {text}")
+            if text:  # Only break if it's not empty
                 break
 
-    result = recognizer.FinalResult()
-    text = json.loads(result).get("text", "").lower()
-    print(f"Heard: '{text}'")
+    if not text:
+        result = json.loads(recognizer.FinalResult())
+        text = result.get("text", "").strip().lower()
+    print(f"Heard: '{text}'", flush=True)
 
     handler = get_command_handler(text)
     if handler:
