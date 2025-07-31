@@ -16,7 +16,7 @@ const Battery = () => {
   // Copy it to local state because often times the victron smartshunt doesn't always have the data
   // This prevent it from wiping it out and just falls back to the last good piece of data
   useEffect(() => {
-    if (response.data.voltage) {
+    if (response.data?.voltage) {
       setLocalCopy(response.data);
     }
   }, [response.data]);
