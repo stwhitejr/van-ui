@@ -3,7 +3,6 @@
 This is my van raspberry PI project. Below it explains what it does. I originally built this because I was sick of using an old phone + victron mobile app (doesn't work on new iPhone) to turn my inverter on and off.
 
 ![IMG_5961](https://github.com/user-attachments/assets/37672f85-7051-4777-aa6b-e53a8268ccfe)
-![IMG_5820](https://github.com/user-attachments/assets/9f09f8aa-935c-448c-8e9d-48974ebac48b)
 
 
 This UI assumes the following:
