@@ -220,7 +220,7 @@ def main():
     print("Loading Porcupine...")
     porcupine = pvporcupine.create(
         access_key=os.getenv("PICOVOICE_ACCESS_KEY"),
-        keywords=[WAKE_WORD],
+        keywords=[WAKE_WORD, "TERMINATOR", "COMPUTER"],
     )
     print("Loading Vosk...")
     model = vosk.Model(VOSK_MODEL_PATH)
@@ -284,6 +284,7 @@ def listen_for_command(recognizer):
         return
 
     print("No matching command found.")
+    invalidCommand()
     led_configure({"on": True, "color": "216, 8, 8", "preset": None})
     sleep(0.5)
     led_configure(originalLedState)
