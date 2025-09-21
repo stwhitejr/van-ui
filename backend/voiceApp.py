@@ -220,7 +220,7 @@ def main():
     print("Loading Porcupine...")
     porcupine = pvporcupine.create(
         access_key=os.getenv("PICOVOICE_ACCESS_KEY"),
-        keywords=[WAKE_WORD, "TERMINATOR", "COMPUTER"],
+        keywords=[WAKE_WORD, "terminator", "computer"],
     )
     print("Loading Vosk...")
     model = vosk.Model(VOSK_MODEL_PATH)
