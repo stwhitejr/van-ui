@@ -38,6 +38,7 @@ def toggleInverter():
 @app.route("/fan/toggle", methods=["POST"])
 def toggleFan():
     FanToggle()
+    return jsonify(True)
 
 
 @app.route("/app/kill", methods=["POST"])

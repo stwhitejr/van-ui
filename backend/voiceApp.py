@@ -164,7 +164,7 @@ COMMAND_ALIASES = {
     "rainbow_leds": ["i'm happy", "happy", "let's dance", "dance"],
     "blue_leds": ["i'm sad", "sad", "i'm blue", "i'm feeling blue"],
     "toggle_lights": [],
-    "toggle_fan": ["fan"],
+    "toggle_fan": ["fan", "ben", "then", "bench", "van", "the fan", "there", "when"],
 }
 
 COMMAND_FUNCTIONS = {
