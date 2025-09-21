@@ -25,6 +25,7 @@ API_HOST = "http://localhost:5000"
 
 AUDIO_PATH = "/home/steve/Desktop/van-ui/audio"
 AUDIO_CONFIRM_PATH = AUDIO_PATH + "/confirm"
+AUDIO_INVALID_PATH = AUDIO_PATH + "/invalid"
 AUDIO_GREET_PATH = AUDIO_PATH + "/greet"
 
 
@@ -57,6 +58,10 @@ def greet():
 
 def confirm():
     play_random_from_folder(AUDIO_CONFIRM_PATH, True)
+
+
+def invalidCommand():
+    play_random_from_folder(AUDIO_INVALID_PATH, True)
 
 
 def led_status():
@@ -273,6 +278,8 @@ def listen_for_command(recognizer):
         led_configure({"on": True, "color": "14, 218, 62", "preset": None})
         print(f"Executing command: {text}")
         sleep(0.5)
+        led_configure(originalLedState)
+        sleep(0.1)
         handler()
         return
 
