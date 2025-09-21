@@ -76,6 +76,11 @@ def toggle_inverter():
     return requests.post(f"{API_HOST}/inverter/toggle", verify=False)
 
 
+def toggle_fan():
+    confirm()
+    return requests.post(f"{API_HOST}/fan/toggle", verify=False)
+
+
 def turn_off_leds():
     confirm()
     return requests.post(f"{API_HOST}/leds/configure", verify=False, json={"on": False})
@@ -159,10 +164,12 @@ COMMAND_ALIASES = {
     "rainbow_leds": ["i'm happy", "happy", "let's dance", "dance"],
     "blue_leds": ["i'm sad", "sad", "i'm blue", "i'm feeling blue"],
     "toggle_lights": [],
+    "toggle_fan": ["fan"],
 }
 
 COMMAND_FUNCTIONS = {
     "toggle_inverter": toggle_inverter,
+    "toggle_fan": toggle_fan,
     "turn_off_leds": turn_off_leds,
     "turn_on_leds": turn_on_leds,
     "blue_leds": blue_leds,

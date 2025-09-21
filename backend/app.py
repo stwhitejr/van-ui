@@ -7,6 +7,7 @@ from hardware import (
     LEDController,
     toggleLights,
     getLightsRelayStatus,
+    FanToggle,
 )
 import time
 from dotenv import load_dotenv
@@ -32,6 +33,11 @@ def toggleInverter():
         leds.turn_off()
 
     return jsonify(data)
+
+
+@app.route("/fan/toggle", methods=["POST"])
+def toggleFan():
+    FanToggle()
 
 
 @app.route("/app/kill", methods=["POST"])
