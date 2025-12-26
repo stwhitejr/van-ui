@@ -1,128 +1,29 @@
+"""Main voice command application with LLM-powered interpretation."""
+
 import pvporcupine
 import sounddevice as sd
-import queue
 import struct
 import vosk
 import json
-import requests
 import os
 from dotenv import load_dotenv
 from time import sleep
 from difflib import get_close_matches
-import pygame
-from threading import Thread
-import random
+
+from voice.config import (
+    VOSK_MODEL_PATH,
+    WAKE_WORD,
+    RATE,
+    CHANNELS,
+)
+from voice.audio_manager import AudioQueue
+from voice.llm_service import LLMService
+from voice.tts_service import TTSService
+from voice.command_executor import execute_command, led_status, led_configure
 
 load_dotenv()
 
-# === Config ===
-VOSK_MODEL_PATH = "/home/steve/models/vosk/vosk-model-small-en-us-0.15"
-WAKE_WORD = "jarvis"
-RATE = 16000
-CHANNELS = 1
-
-API_HOST = "http://localhost:5000"
-
-AUDIO_PATH = "/home/steve/Desktop/van-ui/audio"
-AUDIO_CONFIRM_PATH = AUDIO_PATH + "/confirm"
-AUDIO_INVALID_PATH = AUDIO_PATH + "/invalid"
-AUDIO_GREET_PATH = AUDIO_PATH + "/greet"
-
-
-def play_audio(file_path, shouldThread):
-    def _play():
-        pygame.mixer.init()
-        pygame.mixer.music.load(file_path)
-        pygame.mixer.music.play()
-        while pygame.mixer.music.get_busy():
-            sleep(0.1)
-
-    if shouldThread:
-        Thread(target=_play, daemon=True).start()
-    else:
-        _play()
-
-
-def play_random_from_folder(folder_path, shouldThread):
-    files = [f for f in os.listdir(folder_path) if f.lower().endswith((".mp3", ".wav"))]
-    if not files:
-        print(f"No audio files found in {folder_path}")
-        return
-    selected = random.choice(files)
-    play_audio(os.path.join(folder_path, selected), shouldThread)
-
-
-def greet():
-    play_random_from_folder(AUDIO_GREET_PATH, False)
-
-
-def confirm():
-    play_random_from_folder(AUDIO_CONFIRM_PATH, True)
-
-
-def invalidCommand():
-    play_random_from_folder(AUDIO_INVALID_PATH, True)
-
-
-def led_status():
-    return requests.get(f"{API_HOST}/leds", verify=False)
-
-
-def led_configure(payload):
-    return requests.post(
-        f"{API_HOST}/leds/configure",
-        verify=False,
-        json=payload,
-    )
-
-
-def toggle_inverter():
-    confirm()
-    return requests.post(f"{API_HOST}/inverter/toggle", verify=False)
-
-
-def toggle_fan():
-    confirm()
-    return requests.post(f"{API_HOST}/fan/toggle", verify=False)
-
-
-def turn_off_leds():
-    confirm()
-    return requests.post(f"{API_HOST}/leds/configure", verify=False, json={"on": False})
-
-
-def turn_on_leds():
-    confirm()
-    return requests.post(
-        f"{API_HOST}/leds/configure",
-        verify=False,
-        json={"on": True, "color": "252, 255, 92", "preset": None},
-    )
-
-
-def rainbow_leds():
-    confirm()
-    return requests.post(
-        f"{API_HOST}/leds/configure",
-        verify=False,
-        json={"on": True, "color": "252, 255, 92", "preset": "rainbow"},
-    )
-
-
-def blue_leds():
-    confirm()
-    return requests.post(
-        f"{API_HOST}/leds/configure",
-        verify=False,
-        json={"on": True, "color": "7, 28, 255", "preset": None},
-    )
-
-
-def toggle_lights():
-    confirm()
-    return requests.post(f"{API_HOST}/lights/toggle", verify=False)
-
-
+# Fallback command mapping (used if LLM unavailable)
 COMMAND_ALIASES = {
     "toggle_inverter": [
         "toggle inverter",
@@ -149,7 +50,6 @@ COMMAND_ALIASES = {
         "reverse",
         "reverse the polarity",
         "the polarity",
-        # Move these to toggle_lights if i ever add another relay for the main lights in the van
         "turn on lights",
         "turn off lights",
         "my",
@@ -173,13 +73,13 @@ COMMAND_ALIASES = {
 }
 
 COMMAND_FUNCTIONS = {
-    "toggle_inverter": toggle_inverter,
-    "toggle_fan": toggle_fan,
-    "turn_off_leds": turn_off_leds,
-    "turn_on_leds": turn_on_leds,
-    "blue_leds": blue_leds,
-    "rainbow_leds": rainbow_leds,
-    "toggle_lights": toggle_lights,
+    "toggle_inverter": lambda: execute_command("toggle_inverter"),
+    "toggle_fan": lambda: execute_command("toggle_fan"),
+    "turn_off_leds": lambda: execute_command("turn_off_leds"),
+    "turn_on_leds": lambda: execute_command("turn_on_leds"),
+    "blue_leds": lambda: execute_command("blue_leds"),
+    "rainbow_leds": lambda: execute_command("rainbow_leds"),
+    "toggle_lights": lambda: execute_command("toggle_lights"),
 }
 
 COMMAND_MAP = {}
@@ -189,7 +89,8 @@ for command_key, phrases in COMMAND_ALIASES.items():
         COMMAND_MAP[phrase.lower()] = func
 
 
-def get_command_handler(spoken_text):
+def get_command_handler_fallback(spoken_text):
+    """Fallback command handler using old mapping system."""
     spoken_text = spoken_text.lower()
     if spoken_text in COMMAND_MAP:
         return COMMAND_MAP[spoken_text]
@@ -199,24 +100,213 @@ def get_command_handler(spoken_text):
     return None
 
 
-# === Audio Queue ===
-q = queue.Queue()
-
-
-def flush_audio_queue():
-    while not q.empty():
-        try:
-            q.get_nowait()
-        except queue.Empty:
-            break
+# Global audio queue (initialized in main)
+audio_queue = None
 
 
 def audio_callback(indata, frames, time, status):
-    q.put(bytes(indata))
+    """Audio callback for sounddevice."""
+    if audio_queue:
+        audio_queue.put(bytes(indata))
 
 
-# === Main Loop ===
+def listen_for_yes_no(recognizer, audio_queue, timeout=3):
+    """
+    Listen for yes/no response.
+
+    Args:
+        recognizer: Vosk recognizer
+        audio_queue: Audio queue
+        timeout: Timeout in seconds
+
+    Returns:
+        True for yes, False for no, None for timeout/no response
+    """
+    yes_words = ["yes", "yeah", "yep", "yup", "sure", "okay", "ok"]
+    no_words = ["no", "nope", "nah", "cancel", "stop"]
+
+    audio_queue.flush()
+    text = ""
+
+    # Listen for a few seconds
+    iterations = int((RATE / 1024) * timeout)
+    for _ in range(iterations):
+        try:
+            data = audio_queue.get(timeout=1)
+        except:
+            break
+        if recognizer.AcceptWaveform(data):
+            result = json.loads(recognizer.Result())
+            text = result.get("text", "").strip().lower()
+            if text:
+                break
+
+    if not text:
+        result = json.loads(recognizer.FinalResult())
+        text = result.get("text", "").strip().lower()
+
+    print(f"Heard response: '{text}'", flush=True)
+
+    text_lower = text.lower()
+    for yes_word in yes_words:
+        if yes_word in text_lower:
+            return True
+    for no_word in no_words:
+        if no_word in text_lower:
+            return False
+
+    return None  # Timeout or unclear
+
+
+def listen_for_command(recognizer, audio_queue, llm_service, tts_service):
+    """Listen for and process voice command."""
+    original_led_state = led_status().json()
+    led_configure({"on": True, "color": "255, 255, 255", "preset": "pulse"})
+    print("Listening for command...")
+
+    # Greet user
+    tts_service.speak("Yes?", blocking=True)
+
+    audio_queue.flush()
+    text = ""
+
+    # Listen for a few seconds
+    for _ in range(int((RATE / 1024) * 4)):
+        try:
+            data = audio_queue.get(timeout=1)
+        except:
+            break
+        collected_audio = data
+        if recognizer.AcceptWaveform(data):
+            result = json.loads(recognizer.Result())
+            text = result.get("text", "").strip()
+            print(f"Partial result: {text}")
+            if text:
+                break
+
+    if not text:
+        result = json.loads(recognizer.FinalResult())
+        text = result.get("text", "").strip()
+
+    print(f"Heard: '{text}'", flush=True)
+
+    if not text:
+        tts_service.speak("I didn't catch that. Please try again.")
+        led_configure(original_led_state)
+        return
+
+    # Try LLM interpretation first
+    interpretation = None
+    if llm_service.is_available():
+        interpretation = llm_service.interpret_command(text)
+
+    if interpretation:
+        # LLM interpretation successful
+        command = interpretation.get("command")
+        confidence = interpretation.get("confidence", 0.0)
+        user_message = interpretation.get("user_message", "")
+        needs_confirmation = interpretation.get("needs_confirmation", False)
+        clarification = interpretation.get("clarification")
+
+        if clarification:
+            # LLM needs clarification
+            tts_service.speak(clarification, blocking=True)
+            # Could implement conversational follow-up here
+            led_configure(original_led_state)
+            return
+
+        if command and not needs_confirmation:
+            # High confidence - execute directly
+            led_configure({"on": True, "color": "14, 218, 62", "preset": None})
+            tts_service.speak(user_message or f"Executing {command}", blocking=True)
+            sleep(0.5)
+            led_configure(original_led_state)
+            sleep(0.1)
+
+            result = execute_command(command)
+            if result.get("success"):
+                tts_service.speak("Done", blocking=False)
+            else:
+                tts_service.speak(
+                    f"Error: {result.get('message', 'Command failed')}", blocking=False
+                )
+            return
+
+        elif command and needs_confirmation:
+            # Low confidence - ask for confirmation
+            confirmation_message = (
+                user_message
+                or f"Did you want to {command.replace('_', ' ')}? Say yes or no."
+            )
+            led_configure({"on": True, "color": "255, 165, 0", "preset": None})
+            tts_service.speak(confirmation_message, blocking=True)
+            sleep(0.3)
+
+            response = listen_for_yes_no(recognizer, audio_queue, timeout=3)
+
+            if response is True:
+                # User confirmed
+                led_configure({"on": True, "color": "14, 218, 62", "preset": None})
+                sleep(0.5)
+                led_configure(original_led_state)
+                sleep(0.1)
+
+                result = execute_command(command)
+                if result.get("success"):
+                    tts_service.speak("Done", blocking=False)
+                else:
+                    tts_service.speak(
+                        f"Error: {result.get('message', 'Command failed')}",
+                        blocking=False,
+                    )
+            elif response is False:
+                # User denied
+                tts_service.speak("Cancelled", blocking=False)
+                led_configure({"on": True, "color": "216, 8, 8", "preset": None})
+                sleep(0.5)
+                led_configure(original_led_state)
+            else:
+                # Timeout or unclear
+                tts_service.speak("I didn't understand. Cancelling.", blocking=False)
+                led_configure({"on": True, "color": "216, 8, 8", "preset": None})
+                sleep(0.5)
+                led_configure(original_led_state)
+            return
+
+        else:
+            # LLM couldn't determine command
+            tts_service.speak(
+                "I'm not sure what you want. Please try again.", blocking=False
+            )
+            led_configure({"on": True, "color": "216, 8, 8", "preset": None})
+            sleep(0.5)
+            led_configure(original_led_state)
+            return
+
+    else:
+        # LLM unavailable - use fallback
+        print("LLM unavailable, using fallback command mapping")
+        handler = get_command_handler_fallback(text)
+        if handler:
+            led_configure({"on": True, "color": "14, 218, 62", "preset": None})
+            tts_service.speak("Executing command", blocking=True)
+            sleep(0.5)
+            led_configure(original_led_state)
+            sleep(0.1)
+            handler()
+            tts_service.speak("Done", blocking=False)
+            return
+
+        # No command found
+        print("No matching command found.")
+        tts_service.speak("I didn't understand that command. Please try again.")
+        led_configure({"on": True, "color": "216, 8, 8", "preset": None})
+        sleep(0.5)
+        led_configure(original_led_state)
+
+
 def main():
+    """Main application loop."""
     print("Loading Porcupine...")
     porcupine = pvporcupine.create(
         access_key=os.getenv("PICOVOICE_ACCESS_KEY"),
@@ -225,6 +315,17 @@ def main():
     print("Loading Vosk...")
     model = vosk.Model(VOSK_MODEL_PATH)
     recognizer = vosk.KaldiRecognizer(model, RATE)
+
+    print("Initializing LLM service...")
+    llm_service = LLMService()
+    if not llm_service.is_available():
+        print("Warning: LLM service unavailable, will use fallback command mapping")
+
+    print("Initializing TTS service...")
+    tts_service = TTSService()
+
+    global audio_queue
+    audio_queue = AudioQueue()
 
     print("Ready and listening...")
 
@@ -235,59 +336,12 @@ def main():
         channels=CHANNELS,
         callback=audio_callback,
     ):
-
         while True:
-            pcm = q.get()
+            pcm = audio_queue.get()
             pcm_unpacked = struct.unpack_from("h" * (len(pcm) // 2), pcm)
             if porcupine.process(pcm_unpacked) >= 0:
                 print("Wake word detected!")
-                listen_for_command(recognizer)
-
-
-def listen_for_command(recognizer):
-    originalLedState = led_status().json()
-    led_configure({"on": True, "color": "255, 255, 255", "preset": "pulse"})
-    print("Listening for command...")
-    collected_audio = b""
-
-    greet()
-    flush_audio_queue()
-    text = ""
-
-    # Listen for a few seconds
-    for _ in range(int((RATE / 1024) * 4)):
-        try:
-            data = q.get(timeout=1)
-        except queue.Empty:
-            break
-        collected_audio += data
-        if recognizer.AcceptWaveform(data):
-            result = json.loads(recognizer.Result())
-            text = result.get("text", "").strip()
-            print(f"Partial result: {text}")
-            if text:  # Only break if it's not empty
-                break
-
-    if not text:
-        result = json.loads(recognizer.FinalResult())
-        text = result.get("text", "").strip().lower()
-    print(f"Heard: '{text}'", flush=True)
-
-    handler = get_command_handler(text)
-    if handler:
-        led_configure({"on": True, "color": "14, 218, 62", "preset": None})
-        print(f"Executing command: {text}")
-        sleep(0.5)
-        led_configure(originalLedState)
-        sleep(0.1)
-        handler()
-        return
-
-    print("No matching command found.")
-    invalidCommand()
-    led_configure({"on": True, "color": "216, 8, 8", "preset": None})
-    sleep(0.5)
-    led_configure(originalLedState)
+                listen_for_command(recognizer, audio_queue, llm_service, tts_service)
 
 
 if __name__ == "__main__":
