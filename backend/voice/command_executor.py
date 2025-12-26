@@ -99,15 +99,15 @@ def blue_leds():
 AVAILABLE_COMMANDS = {
     "toggle_inverter": {
         "function": toggle_inverter,
-        "description": "Toggle the inverter on/off",
+        "description": "Toggle the inverter on or off to convert DC to AC power so we can power up our 120v appliances such as the hot plate for cooking",
     },
     "toggle_fan": {
         "function": toggle_fan,
-        "description": "Toggle the fan on/off",
+        "description": "Toggle the roof fan on or off to circulate air inside the van",
     },
     "toggle_lights": {
         "function": toggle_lights,
-        "description": "Toggle the main lights on/off",
+        "description": "Toggle the main lights on or off",
     },
     "turn_on_leds": {
         "function": turn_on_leds,

@@ -50,31 +50,66 @@ class LLMService:
         prompt = f"""You are a voice command interpreter for a camper van control system.
 The user has spoken: "{spoken_text}"
 
-Available commands:
+The available commands below are in the format of "command_name: description".
 {commands_list}
 
-Your task is to:
-1. Determine which command the user wants to execute
-2. Assess your confidence level (0.0 to 1.0)
-3. Provide a natural language response to speak back to the user
+Your task:
+1. Match the spoken text to the most appropriate command from the list above
+2. Leverage the description of the command to help you match the command to the user's intent
+3. Use partial matches when reasonable (e.g., "fan" → toggle_fan, "leds" → turn_on_leds or turn_off_leds)
+4. Assess confidence based on how clear the match is
+5. Only attempt to match if the text can be interpreted as a command
+
+CRITICAL: Only match if the spoken text clearly relates to van control commands. Common words like "hello", "hi", "yes", "no", "thanks" should return null.
+
+Confidence scoring guidelines:
+- 0.9-1.0: Very clear, explicit match (e.g., "toggle the inverter" → toggle_inverter)
+- 0.75-0.89: Good match, clear intent (e.g., "fan" → toggle_fan, "turn on lights" → toggle_lights)
+- 0.6-0.74: Reasonable match but some ambiguity (e.g., "lights" could be toggle_lights or turn_on_leds)
+- 0.4-0.59: Weak match, needs confirmation
+- Below 0.4: Unclear or unrelated - MUST return null
+
+What MUST return null (confidence 0.0):
+- Greetings: "hello", "hi", "hey", "good morning"
+- Responses: "yes", "no", "okay", "thanks", "thank you"
+- Questions: "how are you", "what's the weather", "what time is it"
+- Unrelated words that don't match any command description
+- If you're not confident it's a command, return null
+
+Examples:
+- "fan" → toggle_fan (confidence ~0.8, clearly refers to fan command)
+- "turn on the fan" → toggle_fan (confidence ~0.95, explicit)
+- "hello" → null (confidence 0.0, greeting, not a command)
+- "hi" → null (confidence 0.0, greeting, not a command)
+- "yes" → null (confidence 0.0, response word, not a command)
+- "how are you" → null (confidence 0.0, question, not a command)
+- "leds" → turn_on_leds or turn_off_leds (confidence ~0.7, needs context)
+- "blue" → blue_leds (confidence ~0.85, clear intent for LED color)
+- "inverter" → toggle_inverter (confidence ~0.8, clearly refers to inverter)
+- "lights" → toggle_lights (confidence ~0.75, likely refers to main lights)
 
 Respond ONLY with valid JSON in this exact format:
 {{
-    "command": "command_name",
+    "command": "command_name" or null,
     "confidence": 0.85,
     "needs_confirmation": false,
     "user_message": "Executing command to toggle the inverter",
-    "clarification": null
+    "clarification": null or "What would you like me to do?"
 }}
 
 Rules:
-- Use "command" field with one of the available command names exactly as listed
+- Match partial words ONLY when they clearly refer to a command (e.g., "fan" = toggle_fan, "inverter" = toggle_inverter)
+- Common words like "hello", "hi", "yes", "no" are NOT commands - return null
+- Use "command" field with one of the available command names, or null if:
+  * The text is a greeting, response, or question
+  * The text doesn't relate to any command description
+  * You're uncertain it's a command (confidence < 0.4)
 - Use "confidence" field with a value between 0.0 and 1.0
 - Set "needs_confirmation" to true if confidence is below {self.confidence_threshold}
 - Use "user_message" for what to say to the user (natural language)
-- Use "clarification" only if you need to ask the user something (null otherwise)
-- If the command is unclear, set command to null and provide clarification
+- Use "clarification" when command is null (e.g., "I didn't understand. What would you like me to do?")
 - Be concise in user_message (under 20 words typically)
+- When in doubt, return null rather than guessing
 
 Respond with JSON only, no other text:"""
 
@@ -120,7 +155,7 @@ Respond with JSON only, no other text:"""
                         "temperature": 0.3,  # Lower temperature for more consistent command interpretation
                     },
                 },
-                timeout=10,
+                timeout=30,
             )
 
             if response.status_code != 200:
@@ -147,6 +182,39 @@ Respond with JSON only, no other text:"""
                 needs_confirmation = parsed.get(
                     "needs_confirmation", confidence < self.confidence_threshold
                 )
+
+                # If command is null or empty, treat as no match
+                if not command or command == "null" or command.lower() == "null":
+                    return {
+                        "command": None,
+                        "confidence": 0.0,
+                        "needs_confirmation": False,
+                        "user_message": clarification
+                        or "I didn't understand that command.",
+                        "clarification": clarification
+                        or "What would you like me to do?",
+                    }
+
+                # Validate command exists
+                if command not in AVAILABLE_COMMANDS:
+                    return {
+                        "command": None,
+                        "confidence": 0.0,
+                        "needs_confirmation": False,
+                        "user_message": "I don't recognize that command.",
+                        "clarification": "What would you like me to do?",
+                    }
+
+                # Additional safety: if confidence is very low but command is set, be more cautious
+                # This catches cases where the model sets a command but with very low confidence
+                if confidence < 0.3:
+                    return {
+                        "command": None,
+                        "confidence": 0.0,
+                        "needs_confirmation": False,
+                        "user_message": "I'm not sure what you want me to do.",
+                        "clarification": "What would you like me to do?",
+                    }
 
                 # Ensure confidence-based confirmation flag
                 if confidence < self.confidence_threshold:
