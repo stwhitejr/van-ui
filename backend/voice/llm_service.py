@@ -160,7 +160,7 @@ Respond with JSON only, no other text:"""
                         "num_predict": 150,  # Limit response length (JSON is short)
                     },
                 },
-                timeout=10,
+                timeout=500,
             )
 
             elapsed = time.time() - start_time
