@@ -184,7 +184,7 @@ tts_speaking = False
 wake_word_disabled = False
 
 
-def safe_speak(tts_service, text, blocking=False, cooldown=0.5):
+def safe_speak(tts_service, text, blocking=False, cooldown=1):
     """
     Speak text and prevent wake word detection during/after TTS.
 
@@ -320,14 +320,14 @@ def conversational_mode(recognizer, audio_queue, llm_service, tts_service):
     global command_in_progress
 
     if not llm_service.is_available():
-        safe_speak(tts_service, "LLM service is not available. Cannot start conversation.", blocking=True, cooldown=0.5)
+        safe_speak(tts_service, "LLM service is not available. Cannot start conversation.", blocking=True)
         return
 
     command_in_progress = True
 
     try:
         # Initial greeting (no LLM call)
-        safe_speak(tts_service, "How can I help?", blocking=True, cooldown=0.5)
+        safe_speak(tts_service, "How can I help?", blocking=True)
 
         # Conversation history for context
         conversation_history = []
@@ -342,7 +342,7 @@ def conversational_mode(recognizer, audio_queue, llm_service, tts_service):
             if not text:
                 # 20 seconds of silence - end conversation
                 print("No input for 20 seconds, ending conversation")
-                safe_speak(tts_service, "Goodbye", blocking=True, cooldown=0.5)
+                safe_speak(tts_service, "Goodbye", blocking=True)
                 break
 
             print(f"User said: '{text}'")
@@ -358,10 +358,10 @@ def conversational_mode(recognizer, audio_queue, llm_service, tts_service):
                 # Add assistant response to conversation history
                 conversation_history.append({"role": "assistant", "content": llm_response})
                 # Speak the response
-                safe_speak(tts_service, llm_response, blocking=True, cooldown=0.5)
+                safe_speak(tts_service, llm_response, blocking=True)
             else:
                 print("LLM returned empty response or error")
-                safe_speak(tts_service, "I didn't get a response. Please try again.", blocking=True, cooldown=0.5)
+                safe_speak(tts_service, "I didn't get a response. Please try again.", blocking=True)
 
     finally:
         command_in_progress = False
@@ -378,7 +378,7 @@ def listen_for_command(recognizer, audio_queue, tts_service):
         print("Listening for command...")
 
         # Greet user (using safe_speak to prevent echo)
-        safe_speak(tts_service, "Yes?", blocking=True, cooldown=0.5)
+        safe_speak(tts_service, "Yes?", blocking=True)
 
         # Listen for command (with retry mechanism)
         text = _listen_for_speech(recognizer, audio_queue, timeout=4)
@@ -386,13 +386,13 @@ def listen_for_command(recognizer, audio_queue, tts_service):
 
         # Retry once if nothing was heard
         if not text:
-            safe_speak(tts_service, "I didn't catch that. Please try again.", blocking=True, cooldown=0.5)
+            safe_speak(tts_service, "I didn't catch that. Please try again.", blocking=True)
             sleep(0.3)
             text = _listen_for_speech(recognizer, audio_queue, timeout=4)
             print(f"Retry heard: '{text}'", flush=True)
 
         if not text:
-            safe_speak(tts_service, "Still didn't catch that. Please say the wake word again.", blocking=False, cooldown=0.5)
+            safe_speak(tts_service, "Still didn't catch that. Please say the wake word again.", blocking=False)
             return
 
         # Use command mapping
@@ -402,37 +402,37 @@ def listen_for_command(recognizer, audio_queue, tts_service):
 
             # Special handling for specific commands
             if command_name == "disable_listening":
-                safe_speak(tts_service, "Disabling wake word listening for 60 minutes", blocking=True, cooldown=0.5)
+                safe_speak(tts_service, "Disabling wake word listening for 60 minutes", blocking=True)
                 handler()
-                safe_speak(tts_service, "Listening disabled. Wake words will be ignored for 60 minutes.", blocking=False, cooldown=0.5)
+                safe_speak(tts_service, "Listening disabled. Wake words will be ignored for 60 minutes.", blocking=False)
             elif command_name == "get_inverter_status":
-                safe_speak(tts_service, "Checking inverter status", blocking=True, cooldown=0.5)
+                safe_speak(tts_service, "Checking inverter status", blocking=True)
                 result = handler()
                 if result and result.get("success"):
                     status_message = result.get("message", "Unknown status")
-                    safe_speak(tts_service, status_message, blocking=False, cooldown=0.5)
+                    safe_speak(tts_service, status_message, blocking=False)
                 else:
                     print(f"Failed to get inverter status - result: {result}")
-                    safe_speak(tts_service, "Failed to get inverter status", blocking=False, cooldown=0.5)
+                    safe_speak(tts_service, "Failed to get inverter status", blocking=False)
             elif command_name == "get_battery_data":
-                safe_speak(tts_service, "Checking battery status", blocking=True, cooldown=0.5)
+                safe_speak(tts_service, "Checking battery status", blocking=True)
                 result = handler()
                 if result and result.get("success"):
                     battery_message = result.get("message", "Unknown battery status")
-                    safe_speak(tts_service, battery_message, blocking=False, cooldown=0.5)
+                    safe_speak(tts_service, battery_message, blocking=False)
                 else:
                     print(f"Failed to get battery data - result: {result}")
-                    safe_speak(tts_service, "Failed to get battery data", blocking=False, cooldown=0.5)
+                    safe_speak(tts_service, "Failed to get battery data", blocking=False)
             else:
-                safe_speak(tts_service, f"Executing command {command_name}", blocking=True, cooldown=0.5)
+                safe_speak(tts_service, f"Executing command {command_name}", blocking=True)
                 sleep(0.5)
                 handler()
-                safe_speak(tts_service, "Done", blocking=False, cooldown=0.5)
+                safe_speak(tts_service, "Done", blocking=False)
             return
 
         # No command found
         print("No matching command found.")
-        safe_speak(tts_service, "I didn't understand that command. Please try again.", blocking=False, cooldown=0.5)
+        safe_speak(tts_service, "I didn't understand that command. Please try again.", blocking=False)
         sleep(0.1)
     finally:
         # Always clear the flag when done processing
