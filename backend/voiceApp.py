@@ -1,4 +1,4 @@
-"""Main voice command application with LLM-powered interpretation."""
+"""Main voice command application."""
 
 import pvporcupine
 import sounddevice as sd
@@ -6,9 +6,9 @@ import struct
 import vosk
 import json
 import os
-import time
 from dotenv import load_dotenv
 from time import sleep
+from threading import Timer
 from difflib import get_close_matches
 
 from voice.config import (
@@ -16,16 +16,15 @@ from voice.config import (
     WAKE_WORD,
     RATE,
     CHANNELS,
-    CONFIDENCE_THRESHOLD,
 )
 from voice.audio_manager import AudioQueue
-from voice.llm_service import LLMService
 from voice.tts_service import TTSService
 from voice.command_executor import execute_command
+from voice.llm_service import LLMService
 
 load_dotenv()
 
-# Fallback command mapping (used if LLM unavailable)
+# Command mapping for voice commands
 COMMAND_ALIASES = {
     "toggle_inverter": [
         "toggle inverter",
@@ -67,11 +66,69 @@ COMMAND_ALIASES = {
         "the morning",
     ],
     "toggle_fan": ["fan", "ben", "then", "bench", "van", "the fan", "there", "when"],
+    "get_inverter_status": [
+        "inverter status",
+        "check inverter",
+        "is inverter on",
+        "inverter on",
+        "inverter off",
+        "what's the inverter",
+        "inverter state",
+        "status inverter",
+    ],
+    "get_battery_data": [
+        "battery status",
+        "battery data",
+        "check battery",
+        "battery voltage",
+        "battery charge",
+        "state of charge",
+        "how's the battery",
+        "battery info",
+        "battery level",
+        "what's the battery",
+    ],
+    "disable_listening": [
+        "off",
+        "disable listening",
+        "disable microphone",
+        "privacy mode",
+        "stop listening",
+        "turn off microphone",
+        "mute microphone",
+        "disable wake word",
+        "turn off wake word",
+    ],
 }
+
+def disable_listening():
+    """Disable wake word listening for 60 minutes."""
+    global wake_word_disabled
+
+    if wake_word_disabled:
+        print("Wake word listening already disabled")
+        return
+
+    wake_word_disabled = True
+    print("Wake word listening disabled for 60 minutes")
+
+    # Re-enable after 60 minutes (3600 seconds)
+    def re_enable_listening():
+        global wake_word_disabled
+        wake_word_disabled = False
+        print("Wake word listening re-enabled after 60 minutes")
+
+    timer = Timer(3600.0, re_enable_listening)
+    timer.daemon = True
+    timer.start()
+
 
 COMMAND_FUNCTIONS = {
     "toggle_inverter": lambda: execute_command("toggle_inverter"),
     "toggle_fan": lambda: execute_command("toggle_fan"),
+    "get_inverter_status": lambda: execute_command("get_inverter_status"),
+    "get_battery_data": lambda: execute_command("get_battery_data"),
+    "disable_listening": disable_listening,
 }
 
 COMMAND_MAP = {}
@@ -84,9 +141,9 @@ for command_key, phrases in COMMAND_ALIASES.items():
         COMMAND_MAP[phrase.lower()] = func
 
 
-def get_command_handler_fallback(spoken_text):
+def get_command_handler(spoken_text):
     """
-    Fallback command handler using old mapping system.
+    Command handler using command mapping system.
 
     Returns:
         tuple: (handler_function, command_name) or (None, None) if no match
@@ -118,6 +175,9 @@ command_in_progress = False
 
 # Global flag to prevent wake word detection during TTS output
 tts_speaking = False
+
+# Global flag to disable wake word listening (for privacy mode)
+wake_word_disabled = False
 
 
 def safe_speak(tts_service, text, blocking=False, cooldown=0.5):
@@ -248,8 +308,63 @@ def listen_for_yes_no(recognizer, audio_queue, timeout=3):
     return None  # Timeout or unclear
 
 
-def listen_for_command(recognizer, audio_queue, llm_service, tts_service):
-    """Listen for and process voice command."""
+def conversational_mode(recognizer, audio_queue, llm_service, tts_service):
+    """
+    Conversational mode: pass user input directly to LLM and speak responses.
+    Continues until 20 seconds of silence.
+    """
+    global command_in_progress
+
+    if not llm_service.is_available():
+        safe_speak(tts_service, "LLM service is not available. Cannot start conversation.", blocking=True, cooldown=0.5)
+        return
+
+    command_in_progress = True
+
+    try:
+        # Initial greeting (no LLM call)
+        safe_speak(tts_service, "How can I help?", blocking=True, cooldown=0.5)
+
+        # Conversation history for context
+        conversation_history = []
+
+        # Main conversation loop
+        while True:
+            print("Listening for user input in conversational mode...")
+
+            # Listen for user input with 20 second timeout
+            text = _listen_for_speech(recognizer, audio_queue, timeout=20)
+
+            if not text:
+                # 20 seconds of silence - end conversation
+                print("No input for 20 seconds, ending conversation")
+                safe_speak(tts_service, "Goodbye", blocking=True, cooldown=0.5)
+                break
+
+            print(f"User said: '{text}'")
+
+            # Add user message to conversation history
+            conversation_history.append({"role": "user", "content": text})
+
+            # Call LLM with conversation history
+            llm_response = llm_service.chat(conversation_history, timeout=60)
+
+            if llm_response:
+                print(f"LLM responded: '{llm_response}'")
+                # Add assistant response to conversation history
+                conversation_history.append({"role": "assistant", "content": llm_response})
+                # Speak the response
+                safe_speak(tts_service, llm_response, blocking=True, cooldown=0.5)
+            else:
+                print("LLM returned empty response or error")
+                safe_speak(tts_service, "I didn't get a response. Please try again.", blocking=True, cooldown=0.5)
+
+    finally:
+        command_in_progress = False
+
+
+def listen_for_command(recognizer, audio_queue, tts_service):
+    """Listen for and process voice command using command mapping."""
     global command_in_progress
 
     # Set flag to prevent wake word interruption
@@ -276,115 +391,43 @@ def listen_for_command(recognizer, audio_queue, llm_service, tts_service):
             safe_speak(tts_service, "Still didn't catch that. Please say the wake word again.", blocking=False, cooldown=0.5)
             return
 
-        # Try LLM interpretation first
-        interpretation = None
-        llm_available = llm_service.is_available()
-        print(f"LLM service availability check: {llm_available}")
+        # Use command mapping
+        handler, command_name = get_command_handler(text)
+        if handler:
+            print(f"Matched command: {command_name} (from text: '{text}')")
 
-        if llm_available:
-            print(f"Calling LLM to interpret: '{text}'")
-            start_time = time.time()
-            try:
-                interpretation = llm_service.interpret_command(text)
-                elapsed = time.time() - start_time
-                print(f"LLM call completed in {elapsed:.2f}s, result: {interpretation is not None}")
-                if interpretation is None:
-                    print("Warning: LLM service returned None (may have timed out or encountered an error)")
+            # Special handling for specific commands
+            if command_name == "disable_listening":
+                safe_speak(tts_service, "Disabling wake word listening for 60 minutes", blocking=True, cooldown=0.5)
+                handler()
+                safe_speak(tts_service, "Listening disabled. Wake words will be ignored for 60 minutes.", blocking=False, cooldown=0.5)
+            elif command_name == "get_inverter_status":
+                safe_speak(tts_service, "Checking inverter status", blocking=True, cooldown=0.5)
+                result = handler()
+                if result and result.get("success"):
+                    status_message = result.get("message", "Unknown status")
+                    safe_speak(tts_service, status_message, blocking=False, cooldown=0.5)
                 else:
-                    print(f"LLM returned interpretation: {interpretation}")
-            except Exception as e:
-                elapsed = time.time() - start_time
-                print(f"LLM call failed after {elapsed:.2f}s with exception: {e}")
-                interpretation = None
-        else:
-            print("LLM service marked as unavailable (failed initial check)")
-
-        if interpretation:
-            # LLM interpretation successful
-            command = interpretation.get("command")
-            confidence = interpretation.get("confidence", 0.0)
-            user_message = interpretation.get("user_message", "")
-            needs_confirmation = interpretation.get("needs_confirmation", False)
-            clarification = interpretation.get("clarification")
-
-            # Log confidence for debugging
-            print(f"LLM interpretation - Command: {command}, Confidence: {confidence:.2f}, Needs confirmation: {needs_confirmation}")
-
-            if clarification:
-                # LLM needs clarification
-                safe_speak(tts_service, clarification, blocking=True, cooldown=0.5)
-                # Could implement conversational follow-up here
-                return
-
-            # Use confidence directly to determine if confirmation is needed
-            # This provides a safety check in case needs_confirmation wasn't set correctly
-            should_confirm = needs_confirmation or confidence < CONFIDENCE_THRESHOLD
-
-            if command and not should_confirm:
-                # High confidence - execute directly
-                safe_speak(tts_service, user_message or f"Executing {command}", blocking=True, cooldown=0.5)
-                sleep(0.1)
-
-                result = execute_command(command)
-                if result.get("success"):
-                    safe_speak(tts_service, "Done", blocking=False, cooldown=0.5)
+                    safe_speak(tts_service, "Failed to get inverter status", blocking=False, cooldown=0.5)
+            elif command_name == "get_battery_data":
+                safe_speak(tts_service, "Checking battery status", blocking=True, cooldown=0.5)
+                result = handler()
+                if result and result.get("success"):
+                    battery_message = result.get("message", "Unknown battery status")
+                    safe_speak(tts_service, battery_message, blocking=False, cooldown=0.5)
                 else:
-                    safe_speak(tts_service, f"Error: {result.get('message', 'Command failed')}", blocking=False, cooldown=0.5)
-                return
-
-            elif command and should_confirm:
-                # Low confidence - ask for confirmation
-                cleaned_command = command.replace('_', ' ')
-                confirmation_message = (
-                    user_message
-                    or f"Did you want to {cleaned_command}? Say yes or no."
-                )
-                print(f"Confirming command: {cleaned_command} (confidence: {confidence:.2f})")
-                safe_speak(tts_service, confirmation_message, blocking=True, cooldown=0.5)
-                sleep(0.1)
-
-                response = listen_for_yes_no(recognizer, audio_queue, timeout=3)
-
-                if response is True:
-                    # User confirmed
-                    result = execute_command(command)
-                    if result.get("success"):
-                        safe_speak(tts_service, "Done", blocking=False, cooldown=0.5)
-                    else:
-                        safe_speak(tts_service, f"Error: {result.get('message', 'Command failed')}", blocking=False, cooldown=0.5)
-                elif response is False:
-                    # User denied
-                    safe_speak(tts_service, "Cancelled", blocking=False, cooldown=0.5)
-                else:
-                    # Timeout or unclear
-                    safe_speak(tts_service, "I didn't understand. Cancelling.", blocking=False, cooldown=0.5)
-                return
-
+                    safe_speak(tts_service, "Failed to get battery data", blocking=False, cooldown=0.5)
             else:
-                # LLM couldn't determine command
-                safe_speak(tts_service, "I'm not sure what you want. Please try again.", blocking=False, cooldown=0.5)
-                print(f"Could not understand (confidence: {confidence:.2f})")
-                return
-
-        else:
-            # LLM unavailable or returned None - use fallback
-            if llm_available:
-                print("LLM service is available but returned None - using fallback (may have timed out, errored, or couldn't parse response)")
-            else:
-                print("LLM service unavailable - using fallback command mapping")
-            handler, command_name = get_command_handler_fallback(text)
-            if handler:
-                print(f"Fallback matched command: {command_name} (from text: '{text}')")
-                safe_speak(tts_service, "Executing command", blocking=True, cooldown=0.5)
+                safe_speak(tts_service, f"Executing command {command_name}", blocking=True, cooldown=0.5)
                 sleep(0.5)
                 handler()
                 safe_speak(tts_service, "Done", blocking=False, cooldown=0.5)
-                return
+            return
 
-            # No command found
-            print("No matching command found.")
-            safe_speak(tts_service, "I didn't understand that command. Please try again.", blocking=False, cooldown=0.5)
-            sleep(0.1)
+        # No command found
+        print("No matching command found.")
+        safe_speak(tts_service, "I didn't understand that command. Please try again.", blocking=False, cooldown=0.5)
+        sleep(0.1)
     finally:
         # Always clear the flag when done processing
         command_in_progress = False
@@ -401,13 +444,12 @@ def main():
     model = vosk.Model(VOSK_MODEL_PATH)
     recognizer = vosk.KaldiRecognizer(model, RATE)
 
-    print("Initializing LLM service...")
-    llm_service = LLMService()
-    if not llm_service.is_available():
-        print("Warning: LLM service unavailable, will use fallback command mapping")
-
     print("Initializing TTS service...")
     tts_service = TTSService()
+
+    # Initialize LLM service for conversational mode
+    print("Initializing LLM service...")
+    llm_service = LLMService()
 
     global audio_queue
     audio_queue = AudioQueue()
@@ -424,11 +466,23 @@ def main():
         while True:
             pcm = audio_queue.get()
             pcm_unpacked = struct.unpack_from("h" * (len(pcm) // 2), pcm)
-            if porcupine.process(pcm_unpacked) >= 0:
+            wake_word_index = porcupine.process(pcm_unpacked)
+
+            if wake_word_index >= 0:
+                # Check if wake word listening is disabled
+                if wake_word_disabled:
+                    print("Wake word detected but ignoring (listening disabled)")
+                    continue
+
                 # Only process wake word if no command is currently in progress and TTS is not speaking
                 if not command_in_progress and not tts_speaking:
-                    print("Wake word detected!")
-                    listen_for_command(recognizer, audio_queue, llm_service, tts_service)
+                    # wake_word_index: 0 = WAKE_WORD, 1 = "terminator", 2 = "computer"
+                    if wake_word_index == 1:  # "terminator"
+                        print("Terminator wake word detected - entering conversational mode!")
+                        conversational_mode(recognizer, audio_queue, llm_service, tts_service)
+                    else:
+                        print("Wake word detected!")
+                        listen_for_command(recognizer, audio_queue, tts_service)
                 else:
                     if command_in_progress:
                         print("Wake word detected but ignoring (command in progress)")
