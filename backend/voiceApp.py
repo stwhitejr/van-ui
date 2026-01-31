@@ -19,7 +19,7 @@ from voice.config import (
 from voice.audio_manager import AudioQueue
 from voice.llm_service import LLMService
 from voice.tts_service import TTSService
-from voice.command_executor import execute_command, led_status, led_configure
+from voice.command_executor import execute_command
 
 load_dotenv()
 
@@ -64,22 +64,12 @@ COMMAND_ALIASES = {
         "good night",
         "the morning",
     ],
-    "turn_off_leds": ["turn off leds", "leds off", "strip off", "reset"],
-    "turn_on_leds": ["turn on leds", "leds on", "strip on"],
-    "rainbow_leds": ["i'm happy", "happy", "let's dance", "dance"],
-    "blue_leds": ["i'm sad", "sad", "i'm blue", "i'm feeling blue"],
-    "toggle_lights": [],
     "toggle_fan": ["fan", "ben", "then", "bench", "van", "the fan", "there", "when"],
 }
 
 COMMAND_FUNCTIONS = {
     "toggle_inverter": lambda: execute_command("toggle_inverter"),
     "toggle_fan": lambda: execute_command("toggle_fan"),
-    "turn_off_leds": lambda: execute_command("turn_off_leds"),
-    "turn_on_leds": lambda: execute_command("turn_on_leds"),
-    "blue_leds": lambda: execute_command("blue_leds"),
-    "rainbow_leds": lambda: execute_command("rainbow_leds"),
-    "toggle_lights": lambda: execute_command("toggle_lights"),
 }
 
 COMMAND_MAP = {}
@@ -160,8 +150,6 @@ def listen_for_yes_no(recognizer, audio_queue, timeout=3):
 
 def listen_for_command(recognizer, audio_queue, llm_service, tts_service):
     """Listen for and process voice command."""
-    original_led_state = led_status().json()
-    led_configure({"on": True, "color": "255, 255, 255", "preset": "pulse"})
     print("Listening for command...")
 
     # Greet user
@@ -192,7 +180,6 @@ def listen_for_command(recognizer, audio_queue, llm_service, tts_service):
 
     if not text:
         tts_service.speak("I didn't catch that. Please try again.")
-        led_configure(original_led_state)
         return
 
     # Try LLM interpretation first
@@ -212,15 +199,11 @@ def listen_for_command(recognizer, audio_queue, llm_service, tts_service):
             # LLM needs clarification
             tts_service.speak(clarification, blocking=True)
             # Could implement conversational follow-up here
-            led_configure(original_led_state)
             return
 
         if command and not needs_confirmation:
             # High confidence - execute directly
-            led_configure({"on": True, "color": "14, 218, 62", "preset": None})
             tts_service.speak(user_message or f"Executing {command}", blocking=True)
-            sleep(0.5)
-            led_configure(original_led_state)
             sleep(0.1)
 
             result = execute_command(command)
@@ -238,7 +221,6 @@ def listen_for_command(recognizer, audio_queue, llm_service, tts_service):
                 user_message
                 or f"Did you want to {command.replace('_', ' ')}? Say yes or no."
             )
-            led_configure({"on": True, "color": "255, 165, 0", "preset": None})
             tts_service.speak(confirmation_message, blocking=True)
             sleep(0.3)
 
@@ -246,11 +228,6 @@ def listen_for_command(recognizer, audio_queue, llm_service, tts_service):
 
             if response is True:
                 # User confirmed
-                led_configure({"on": True, "color": "14, 218, 62", "preset": None})
-                sleep(0.5)
-                led_configure(original_led_state)
-                sleep(0.1)
-
                 result = execute_command(command)
                 if result.get("success"):
                     tts_service.speak("Done", blocking=False)
@@ -262,15 +239,9 @@ def listen_for_command(recognizer, audio_queue, llm_service, tts_service):
             elif response is False:
                 # User denied
                 tts_service.speak("Cancelled", blocking=False)
-                led_configure({"on": True, "color": "216, 8, 8", "preset": None})
-                sleep(0.5)
-                led_configure(original_led_state)
             else:
                 # Timeout or unclear
                 tts_service.speak("I didn't understand. Cancelling.", blocking=False)
-                led_configure({"on": True, "color": "216, 8, 8", "preset": None})
-                sleep(0.5)
-                led_configure(original_led_state)
             return
 
         else:
@@ -278,9 +249,6 @@ def listen_for_command(recognizer, audio_queue, llm_service, tts_service):
             tts_service.speak(
                 "I'm not sure what you want. Please try again.", blocking=False
             )
-            led_configure({"on": True, "color": "216, 8, 8", "preset": None})
-            sleep(0.5)
-            led_configure(original_led_state)
             return
 
     else:
@@ -288,11 +256,8 @@ def listen_for_command(recognizer, audio_queue, llm_service, tts_service):
         print("LLM unavailable, using fallback command mapping")
         handler = get_command_handler_fallback(text)
         if handler:
-            led_configure({"on": True, "color": "14, 218, 62", "preset": None})
             tts_service.speak("Executing command", blocking=True)
             sleep(0.5)
-            led_configure(original_led_state)
-            sleep(0.1)
             handler()
             tts_service.speak("Done", blocking=False)
             return
@@ -300,9 +265,7 @@ def listen_for_command(recognizer, audio_queue, llm_service, tts_service):
         # No command found
         print("No matching command found.")
         tts_service.speak("I didn't understand that command. Please try again.")
-        led_configure({"on": True, "color": "216, 8, 8", "preset": None})
         sleep(0.5)
-        led_configure(original_led_state)
 
 
 def main():
