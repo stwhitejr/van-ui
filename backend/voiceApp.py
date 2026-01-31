@@ -92,6 +92,8 @@ COMMAND_ALIASES = {
     ],
     "disable_listening": [
         "off",
+        "stop",
+        "quit",
         "disable listening",
         "disable microphone",
         "privacy mode",
@@ -410,6 +412,7 @@ def listen_for_command(recognizer, audio_queue, tts_service):
                     status_message = result.get("message", "Unknown status")
                     safe_speak(tts_service, status_message, blocking=False, cooldown=0.5)
                 else:
+                    print(f"Failed to get inverter status - result: {result}")
                     safe_speak(tts_service, "Failed to get inverter status", blocking=False, cooldown=0.5)
             elif command_name == "get_battery_data":
                 safe_speak(tts_service, "Checking battery status", blocking=True, cooldown=0.5)
@@ -418,6 +421,7 @@ def listen_for_command(recognizer, audio_queue, tts_service):
                     battery_message = result.get("message", "Unknown battery status")
                     safe_speak(tts_service, battery_message, blocking=False, cooldown=0.5)
                 else:
+                    print(f"Failed to get battery data - result: {result}")
                     safe_speak(tts_service, "Failed to get battery data", blocking=False, cooldown=0.5)
             else:
                 safe_speak(tts_service, f"Executing command {command_name}", blocking=True, cooldown=0.5)
