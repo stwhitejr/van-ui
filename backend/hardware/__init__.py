@@ -2,6 +2,23 @@ import platform
 import os
 import argparse
 
+# Set GPIO pin factory BEFORE importing any GPIO modules
+# This prevents auto-detection issues and GPIO busy errors
+try:
+    from gpiozero.pins.pigpio import PiGPIOFactory
+    from gpiozero import Device
+    Device.pin_factory = PiGPIOFactory()
+    print("Using pigpio pin factory")
+except Exception as e:
+    print(f"Could not use pigpio pin factory: {e}")
+    try:
+        from gpiozero.pins.rpigpio import RPiGPIOFactory
+        from gpiozero import Device
+        Device.pin_factory = RPiGPIOFactory()
+        print("Using RPi.GPIO pin factory")
+    except Exception as e2:
+        print(f"Could not use RPi.GPIO pin factory: {e2}")
+        print("Will use default pin factory (may cause issues)")
 
 parser = argparse.ArgumentParser(description="Use API stubs.")
 parser.add_argument("-m", "--mock", help="API Stub")
