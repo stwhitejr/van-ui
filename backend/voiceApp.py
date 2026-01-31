@@ -184,7 +184,7 @@ tts_speaking = False
 wake_word_disabled = False
 
 
-def safe_speak(tts_service, text, blocking=False, cooldown=1):
+def safe_speak(tts_service, text, blocking=False, cooldown=2):
     """
     Speak text and prevent wake word detection during/after TTS.
 
