@@ -156,10 +156,11 @@ Respond with JSON only, no other text:"""
                     "messages": messages,
                     "stream": False,
                     "options": {
-                        "temperature": 0.3,  # Lower temperature for more consistent command interpretation
+                        "temperature": 0.1,  # Even lower for faster, more deterministic responses
+                        "num_predict": 150,  # Limit response length (JSON is short)
                     },
                 },
-                timeout=30,
+                timeout=10,
             )
 
             elapsed = time.time() - start_time
