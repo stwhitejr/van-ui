@@ -2,7 +2,6 @@ smbus2
 gpiozero
 serial
 rpi_ws281x
-adafruit-circuitpython-neopixel
 pvporcupine
 sounddevice
 vosk
