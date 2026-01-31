@@ -67,6 +67,7 @@ COMMAND_ALIASES = {
     ],
     "toggle_fan": ["fan", "ben", "then", "bench", "van", "the fan", "there", "when"],
     "get_inverter_status": [
+        "status",
         "inverter status",
         "check inverter",
         "is inverter on",
