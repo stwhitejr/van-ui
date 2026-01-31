@@ -1,6 +1,7 @@
 """LLM service for interpreting voice commands using Ollama."""
 
 import json
+import time
 import requests
 from typing import Optional, Dict, Any
 from .config import OLLAMA_HOST, OLLAMA_MODEL, CONFIDENCE_THRESHOLD
@@ -144,6 +145,9 @@ Respond with JSON only, no other text:"""
 
             messages.append({"role": "user", "content": prompt})
 
+            print(f"Calling Ollama API at {self.host}/api/chat with model {self.model}")
+            start_time = time.time()
+
             # Call Ollama API
             response = requests.post(
                 f"{self.host}/api/chat",
@@ -158,12 +162,25 @@ Respond with JSON only, no other text:"""
                 timeout=30,
             )
 
+            elapsed = time.time() - start_time
+            print(f"Ollama API response received in {elapsed:.2f}s, status: {response.status_code}")
+
             if response.status_code != 200:
                 print(f"Ollama API error: {response.status_code}")
+                try:
+                    error_body = response.text[:200]  # First 200 chars
+                    print(f"Error response body: {error_body}")
+                except:
+                    pass
                 return None
 
             result = response.json()
             content = result.get("message", {}).get("content", "").strip()
+            print(f"LLM response content length: {len(content)} chars")
+            if len(content) > 500:
+                print(f"LLM response preview: {content[:200]}...")
+            else:
+                print(f"LLM response: {content}")
 
             # Try to extract JSON from response
             # Sometimes LLM adds extra text, so we try to find JSON
@@ -172,6 +189,7 @@ Respond with JSON only, no other text:"""
 
             if json_start >= 0 and json_end > json_start:
                 json_str = content[json_start:json_end]
+                print(f"Extracted JSON: {json_str}")
                 parsed = json.loads(json_str)
 
                 # Validate and normalize response
@@ -228,17 +246,24 @@ Respond with JSON only, no other text:"""
                     "clarification": clarification,
                 }
             else:
-                print(f"Could not parse JSON from LLM response: {content}")
+                print(f"Could not parse JSON from LLM response (no JSON found)")
+                print(f"Full response content: {content}")
                 return None
 
         except json.JSONDecodeError as e:
             print(f"JSON decode error: {e}")
+            print(f"Attempted to parse: {json_str if 'json_str' in locals() else 'N/A'}")
+            return None
+        except requests.exceptions.Timeout as e:
+            print(f"LLM request timed out after 30s: {e}")
             return None
         except requests.exceptions.RequestException as e:
-            print(f"Request error: {e}")
+            print(f"LLM request error: {type(e).__name__}: {e}")
             return None
         except Exception as e:
-            print(f"Unexpected error in LLM interpretation: {e}")
+            print(f"Unexpected error in LLM interpretation: {type(e).__name__}: {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
     def is_available(self) -> bool:
