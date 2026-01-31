@@ -245,12 +245,8 @@ def safe_speak(tts_service, text, blocking=False, cooldown=0.8):
 
 def audio_callback(indata, frames, time, status):
     """Audio callback for sounddevice."""
-    if status:
-        print(f"Audio callback status: {status}", flush=True)
     if audio_queue:
         audio_queue.put(bytes(indata))
-    else:
-        print("Warning: audio_queue is None in callback", flush=True)
 
 
 def _listen_for_speech(recognizer, audio_queue, timeout=4):
@@ -267,42 +263,24 @@ def _listen_for_speech(recognizer, audio_queue, timeout=4):
     """
     audio_queue.flush()
     text = ""
-    
-    print(f"Starting to listen for speech (timeout: {timeout}s)...")
-    print(f"Audio queue empty before listening: {audio_queue.empty()}")
 
     # Listen for specified duration
     iterations = int((RATE / 1024) * timeout)
-    print(f"Will iterate {iterations} times (expecting ~{iterations * 1024 / RATE:.1f}s of audio)")
-    
-    audio_received = 0
-    for i in range(iterations):
+    for _ in range(iterations):
         try:
             data = audio_queue.get(timeout=1)
-            audio_received += 1
-            if audio_received % 100 == 0:
-                print(f"Received {audio_received} audio chunks...")
-        except Exception as e:
-            print(f"Timeout or error getting audio chunk {i}: {e}")
-            # Don't break immediately - continue trying
-            continue
-            
-        if data and len(data) > 0:
-            if recognizer.AcceptWaveform(data):
-                result = json.loads(recognizer.Result())
-                text = result.get("text", "").strip()
-                print(f"Partial result: '{text}'")
-                if text:
-                    break
-        else:
-            print(f"Warning: Received empty or invalid audio chunk {i}")
-
-    print(f"Finished listening. Received {audio_received}/{iterations} audio chunks")
+        except:
+            break
+        if recognizer.AcceptWaveform(data):
+            result = json.loads(recognizer.Result())
+            text = result.get("text", "").strip()
+            print(f"Partial result: {text}")
+            if text:
+                break
 
     if not text:
         result = json.loads(recognizer.FinalResult())
         text = result.get("text", "").strip()
-        print(f"Final result: '{text}'")
 
     return text
 
@@ -405,19 +383,12 @@ def listen_for_command(recognizer, audio_queue, tts_service):
         # Greet user (using safe_speak to prevent echo)
         safe_speak(tts_service, "Yes?", blocking=True)
 
-        # Listen for command (with retry mechanism)
+        # Listen for command
         text = _listen_for_speech(recognizer, audio_queue, timeout=4)
         print(f"Heard: '{text}'", flush=True)
 
-        # Retry once if nothing was heard
         if not text:
-            safe_speak(tts_service, "I didn't catch that. Please try again.", blocking=True)
-            sleep(0.3)
-            text = _listen_for_speech(recognizer, audio_queue, timeout=4)
-            print(f"Retry heard: '{text}'", flush=True)
-
-        if not text:
-            safe_speak(tts_service, "Still didn't catch that. Please say the wake word again.", blocking=False)
+            safe_speak(tts_service, "I didn't catch that. Please say the wake word again.", blocking=False)
             return
 
         # Use command mapping
@@ -484,28 +455,6 @@ def main():
 
     global audio_queue
     audio_queue = AudioQueue()
-
-    # Test audio capture before starting main loop
-    print("Testing audio capture...")
-    print("Starting audio stream for 2 seconds to test...")
-    with sd.RawInputStream(
-        samplerate=RATE,
-        blocksize=512,
-        dtype="int16",
-        channels=CHANNELS,
-        callback=audio_callback,
-    ):
-        test_chunks = 0
-        for _ in range(200):  # Listen for ~2 seconds (200 * 512 / 16000)
-            try:
-                data = audio_queue.get(timeout=0.1)
-                test_chunks += 1
-            except:
-                break
-        print(f"Audio test: Captured {test_chunks} audio chunks")
-        if test_chunks == 0:
-            print("WARNING: No audio chunks captured! Check microphone connection and permissions.")
-        audio_queue.flush()  # Clear test data
 
     print("Ready and listening...")
 
