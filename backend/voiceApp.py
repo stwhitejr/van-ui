@@ -77,6 +77,7 @@ COMMAND_ALIASES = {
         "status inverter",
     ],
     "get_battery_data": [
+        "battery",
         "battery status",
         "battery data",
         "check battery",
