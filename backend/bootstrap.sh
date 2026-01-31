@@ -28,13 +28,14 @@ else
     echo "Model llama3.2:1b already downloaded"
 fi
 
-# Enable PWM for LEDs
-echo ""
-echo "To enable PWM for LEDs, add this line to /boot/config.txt:"
-echo "dtoverlay=ws281x,pin=18,channel=0"
-echo ""
-echo "You can do this manually with: sudo nano /boot/config.txt"
-echo "Then reboot for changes to take effect."
+# Install eSpeak-ng for TTS
+if ! command -v espeak-ng &> /dev/null && ! command -v espeak &> /dev/null; then
+    echo "Installing eSpeak-ng for TTS..."
+    sudo apt-get update
+    sudo apt-get install -y espeak-ng
+else
+    echo "eSpeak already installed"
+fi
 
 echo ""
 echo "Setup complete!"
