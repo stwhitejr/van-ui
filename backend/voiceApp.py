@@ -15,6 +15,7 @@ from voice.config import (
     WAKE_WORD,
     RATE,
     CHANNELS,
+    CONFIDENCE_THRESHOLD,
 )
 from voice.audio_manager import AudioQueue
 from voice.llm_service import LLMService
@@ -93,11 +94,50 @@ def get_command_handler_fallback(spoken_text):
 # Global audio queue (initialized in main)
 audio_queue = None
 
+# Global flag to prevent wake word detection during command processing
+command_in_progress = False
+
 
 def audio_callback(indata, frames, time, status):
     """Audio callback for sounddevice."""
     if audio_queue:
         audio_queue.put(bytes(indata))
+
+
+def _listen_for_speech(recognizer, audio_queue, timeout=4):
+    """
+    Helper function to listen for speech and return transcribed text.
+
+    Args:
+        recognizer: Vosk recognizer
+        audio_queue: Audio queue
+        timeout: Timeout in seconds
+
+    Returns:
+        Transcribed text string, or empty string if nothing heard
+    """
+    audio_queue.flush()
+    text = ""
+
+    # Listen for specified duration
+    iterations = int((RATE / 1024) * timeout)
+    for _ in range(iterations):
+        try:
+            data = audio_queue.get(timeout=1)
+        except:
+            break
+        if recognizer.AcceptWaveform(data):
+            result = json.loads(recognizer.Result())
+            text = result.get("text", "").strip()
+            print(f"Partial result: {text}")
+            if text:
+                break
+
+    if not text:
+        result = json.loads(recognizer.FinalResult())
+        text = result.get("text", "").strip()
+
+    return text
 
 
 def listen_for_yes_no(recognizer, audio_queue, timeout=3):
@@ -115,26 +155,7 @@ def listen_for_yes_no(recognizer, audio_queue, timeout=3):
     yes_words = ["yes", "yeah", "yep", "yup", "sure", "okay", "ok"]
     no_words = ["no", "nope", "nah", "cancel", "stop"]
 
-    audio_queue.flush()
-    text = ""
-
-    # Listen for a few seconds
-    iterations = int((RATE / 1024) * timeout)
-    for _ in range(iterations):
-        try:
-            data = audio_queue.get(timeout=1)
-        except:
-            break
-        if recognizer.AcceptWaveform(data):
-            result = json.loads(recognizer.Result())
-            text = result.get("text", "").strip().lower()
-            if text:
-                break
-
-    if not text:
-        result = json.loads(recognizer.FinalResult())
-        text = result.get("text", "").strip().lower()
-
+    text = _listen_for_speech(recognizer, audio_queue, timeout)
     print(f"Heard response: '{text}'", flush=True)
 
     text_lower = text.lower()
@@ -150,122 +171,129 @@ def listen_for_yes_no(recognizer, audio_queue, timeout=3):
 
 def listen_for_command(recognizer, audio_queue, llm_service, tts_service):
     """Listen for and process voice command."""
-    print("Listening for command...")
+    global command_in_progress
 
-    # Greet user
-    tts_service.speak("Yes?", blocking=True)
+    # Set flag to prevent wake word interruption
+    command_in_progress = True
 
-    audio_queue.flush()
-    text = ""
+    try:
+        print("Listening for command...")
 
-    # Listen for a few seconds
-    for _ in range(int((RATE / 1024) * 4)):
-        try:
-            data = audio_queue.get(timeout=1)
-        except:
-            break
-        collected_audio = data
-        if recognizer.AcceptWaveform(data):
-            result = json.loads(recognizer.Result())
-            text = result.get("text", "").strip()
-            print(f"Partial result: {text}")
-            if text:
-                break
+        # Greet user
+        tts_service.speak("Yes?", blocking=True)
 
-    if not text:
-        result = json.loads(recognizer.FinalResult())
-        text = result.get("text", "").strip()
+        # Listen for command (with retry mechanism)
+        text = _listen_for_speech(recognizer, audio_queue, timeout=4)
+        print(f"Heard: '{text}'", flush=True)
 
-    print(f"Heard: '{text}'", flush=True)
-
-    if not text:
-        tts_service.speak("I didn't catch that. Please try again.")
-        return
-
-    # Try LLM interpretation first
-    interpretation = None
-    if llm_service.is_available():
-        interpretation = llm_service.interpret_command(text)
-
-    if interpretation:
-        # LLM interpretation successful
-        command = interpretation.get("command")
-        confidence = interpretation.get("confidence", 0.0)
-        user_message = interpretation.get("user_message", "")
-        needs_confirmation = interpretation.get("needs_confirmation", False)
-        clarification = interpretation.get("clarification")
-
-        if clarification:
-            # LLM needs clarification
-            tts_service.speak(clarification, blocking=True)
-            # Could implement conversational follow-up here
-            return
-
-        if command and not needs_confirmation:
-            # High confidence - execute directly
-            tts_service.speak(user_message or f"Executing {command}", blocking=True)
-            sleep(0.1)
-
-            result = execute_command(command)
-            if result.get("success"):
-                tts_service.speak("Done", blocking=False)
-            else:
-                tts_service.speak(
-                    f"Error: {result.get('message', 'Command failed')}", blocking=False
-                )
-            return
-
-        elif command and needs_confirmation:
-            # Low confidence - ask for confirmation
-            confirmation_message = (
-                user_message
-                or f"Did you want to {command.replace('_', ' ')}? Say yes or no."
-            )
-            tts_service.speak(confirmation_message, blocking=True)
+        # Retry once if nothing was heard
+        if not text:
+            tts_service.speak("I didn't catch that. Please try again.", blocking=True)
             sleep(0.3)
+            text = _listen_for_speech(recognizer, audio_queue, timeout=4)
+            print(f"Retry heard: '{text}'", flush=True)
 
-            response = listen_for_yes_no(recognizer, audio_queue, timeout=3)
+        if not text:
+            tts_service.speak("Still didn't catch that. Please say the wake word again.", blocking=False)
+            return
 
-            if response is True:
-                # User confirmed
+        # Try LLM interpretation first
+        interpretation = None
+        if llm_service.is_available():
+            interpretation = llm_service.interpret_command(text)
+
+        if interpretation:
+            # LLM interpretation successful
+            command = interpretation.get("command")
+            confidence = interpretation.get("confidence", 0.0)
+            user_message = interpretation.get("user_message", "")
+            needs_confirmation = interpretation.get("needs_confirmation", False)
+            clarification = interpretation.get("clarification")
+
+            # Log confidence for debugging
+            print(f"LLM interpretation - Command: {command}, Confidence: {confidence:.2f}, Needs confirmation: {needs_confirmation}")
+
+            if clarification:
+                # LLM needs clarification
+                tts_service.speak(clarification, blocking=True)
+                # Could implement conversational follow-up here
+                return
+
+            # Use confidence directly to determine if confirmation is needed
+            # This provides a safety check in case needs_confirmation wasn't set correctly
+            should_confirm = needs_confirmation or confidence < CONFIDENCE_THRESHOLD
+
+            if command and not should_confirm:
+                # High confidence - execute directly
+                tts_service.speak(user_message or f"Executing {command}", blocking=True)
+                sleep(0.1)
+
                 result = execute_command(command)
                 if result.get("success"):
                     tts_service.speak("Done", blocking=False)
                 else:
                     tts_service.speak(
-                        f"Error: {result.get('message', 'Command failed')}",
-                        blocking=False,
+                        f"Error: {result.get('message', 'Command failed')}", blocking=False
                     )
-            elif response is False:
-                # User denied
-                tts_service.speak("Cancelled", blocking=False)
+                return
+
+            elif command and should_confirm:
+                # Low confidence - ask for confirmation
+                cleaned_command = command.replace('_', ' ')
+                confirmation_message = (
+                    user_message
+                    or f"Did you want to {cleaned_command}? Say yes or no."
+                )
+                print(f"Confirming command: {cleaned_command} (confidence: {confidence:.2f})")
+                tts_service.speak(confirmation_message, blocking=True)
+                sleep(0.1)
+
+                response = listen_for_yes_no(recognizer, audio_queue, timeout=3)
+
+                if response is True:
+                    # User confirmed
+                    result = execute_command(command)
+                    if result.get("success"):
+                        tts_service.speak("Done", blocking=False)
+                    else:
+                        tts_service.speak(
+                            f"Error: {result.get('message', 'Command failed')}",
+                            blocking=False,
+                        )
+                elif response is False:
+                    # User denied
+                    tts_service.speak("Cancelled", blocking=False)
+                else:
+                    # Timeout or unclear
+                    tts_service.speak("I didn't understand. Cancelling.", blocking=False)
+                return
+
             else:
-                # Timeout or unclear
-                tts_service.speak("I didn't understand. Cancelling.", blocking=False)
-            return
+                # LLM couldn't determine command
+                tts_service.speak(
+                    "I'm not sure what you want. Please try again.", blocking=False
+                )
+                print(f"Could not understand (confidence: {confidence:.2f})")
+                return
 
         else:
-            # LLM couldn't determine command
-            tts_service.speak(
-                "I'm not sure what you want. Please try again.", blocking=False
-            )
-            return
+            # LLM unavailable - use fallback
+            print("LLM unavailable, using fallback command mapping")
+            handler = get_command_handler_fallback(text)
+            if handler:
+                tts_service.speak("Executing command", blocking=True)
+                sleep(0.5)
+                handler()
+                tts_service.speak("Done", blocking=False)
+                return
 
-    else:
-        # LLM unavailable - use fallback
-        print("LLM unavailable, using fallback command mapping")
-        handler = get_command_handler_fallback(text)
-        if handler:
-            tts_service.speak("Executing command", blocking=True)
-            sleep(0.5)
-            handler()
-            tts_service.speak("Done", blocking=False)
-            return
-
-        # No command found
-        print("No matching command found.")
-        tts_service.speak("I didn't understand that command. Please try again.")
-        sleep(0.5)
+            # No command found
+            print("No matching command found.")
+            tts_service.speak("I didn't understand that command. Please try again.")
+            sleep(0.1)
+    finally:
+        # Always clear the flag when done processing
+        command_in_progress = False
 
 
 def main():
@@ -303,8 +331,12 @@ def main():
             pcm = audio_queue.get()
             pcm_unpacked = struct.unpack_from("h" * (len(pcm) // 2), pcm)
             if porcupine.process(pcm_unpacked) >= 0:
-                print("Wake word detected!")
-                listen_for_command(recognizer, audio_queue, llm_service, tts_service)
+                # Only process wake word if no command is currently in progress
+                if not command_in_progress:
+                    print("Wake word detected!")
+                    listen_for_command(recognizer, audio_queue, llm_service, tts_service)
+                else:
+                    print("Wake word detected but ignoring (command in progress)")
 
 
 if __name__ == "__main__":
