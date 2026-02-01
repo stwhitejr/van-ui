@@ -9,14 +9,14 @@ def getRating(degree):
 
 
 def checkLevel():
-    from mpu6050 import mpu6050
+    import mpu6050
     import math
 
     # These should be readings you get when the van is actually level. This depends on how you mount the sensor.
     CALIBRATION_PITCH_OFFSET = 0
     CALIBRATION_ROLL_OFFSET = 87
 
-    sensor = mpu6050(0x68)
+    sensor = mpu6050.mpu6050(0x68)
     accel_data = sensor.get_accel_data()
 
     ax = accel_data["x"]
