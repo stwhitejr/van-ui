@@ -1,20 +1,9 @@
-import {
-  Box,
-  Breadcrumbs,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  Grid2,
-  IconButton,
-  Link,
-  Stack,
-  TextField,
-} from '@mui/material';
-import {useState, useCallback} from 'react';
+import {Box, Stack} from '@mui/material';
+import {useState, useCallback, useMemo} from 'react';
+import {ChangeEvent} from 'react';
 import Button from '@root/components/Button';
 import Text from '@root/components/Text';
 import Container from '@root/components/Container';
-import PillBox from '@root/components/PillBox';
 import {
   useListFilesQuery,
   useUploadFileMutation,
@@ -27,154 +16,16 @@ import {
 } from './api';
 import {createBaseUrl} from '@root/util/api';
 import useToast from '@root/features/toast/useToast';
-import RtkQueryGate from '@root/components/RtkQueryGate';
+import {isImageFile} from './utils';
+import {BreadcrumbNavigation} from './BreadcrumbNavigation';
+import {FileList} from './FileList';
+import {UploadDialog} from './UploadDialog';
+import {CreateFolderDialog} from './CreateFolderDialog';
+import {PasswordDialog} from './PasswordDialog';
+import {DeleteConfirmDialog} from './DeleteConfirmDialog';
+import {Slideshow} from './Slideshow';
 
 const BASE_URL = '/files';
-
-interface FolderIconProps {
-  width?: number;
-  height?: number;
-}
-
-const FolderIcon = ({width = 24, height = 24}: FolderIconProps) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={width}
-    height={height}
-    viewBox="0 0 24 24"
-    fill="currentColor"
-  >
-    <path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z" />
-  </svg>
-);
-
-interface FileIconProps {
-  width?: number;
-  height?: number;
-}
-
-const FileIcon = ({width = 24, height = 24}: FileIconProps) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={width}
-    height={height}
-    viewBox="0 0 24 24"
-    fill="currentColor"
-  >
-    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
-  </svg>
-);
-
-interface DeleteIconProps {
-  width?: number;
-  height?: number;
-}
-
-const DeleteIcon = ({width = 20, height = 20}: DeleteIconProps) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={width}
-    height={height}
-    viewBox="0 0 24 24"
-    fill="currentColor"
-  >
-    <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
-  </svg>
-);
-
-interface LockIconProps {
-  width?: number;
-  height?: number;
-}
-
-const LockIcon = ({width = 20, height = 20}: LockIconProps) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={width}
-    height={height}
-    viewBox="0 0 24 24"
-    fill="currentColor"
-  >
-    <path d="M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6C4.89,22 4,21.1 4,20V10C4,8.89 4.89,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" />
-  </svg>
-);
-
-interface UnlockIconProps {
-  width?: number;
-  height?: number;
-}
-
-const UnlockIcon = ({width = 20, height = 20}: UnlockIconProps) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={width}
-    height={height}
-    viewBox="0 0 24 24"
-    fill="currentColor"
-  >
-    <path d="M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6C4.89,22 4,21.1 4,20V10C4,8.89 4.89,8 6,8H15V6A3,3 0 0,0 9,6H7A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18Z" />
-  </svg>
-);
-
-const formatFileSize = (bytes?: number): string => {
-  return (() => {
-    if (!bytes) {
-      return '';
-    }
-    return (() => {
-      if (bytes < 1024) {
-        return `${bytes} B`;
-      }
-      return (() => {
-        if (bytes < 1024 * 1024) {
-          return `${(bytes / 1024).toFixed(1)} KB`;
-        }
-        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-      })();
-    })();
-  })();
-};
-
-const isImageFile = (filename: string): boolean => {
-  const imageExtensions = [
-    '.jpg',
-    '.jpeg',
-    '.png',
-    '.gif',
-    '.bmp',
-    '.webp',
-    '.svg',
-    '.ico',
-  ];
-  const lowerFilename = filename.toLowerCase();
-  return imageExtensions.some((ext) => lowerFilename.endsWith(ext));
-};
-
-const ImageThumbnail = ({file}: {file: FileItem}) => {
-  const [imageError, setImageError] = useState(false);
-  const imageUrl = `${createBaseUrl(BASE_URL)}/view/${file.path
-    .split('/')
-    .map((segment) => encodeURIComponent(segment))
-    .join('/')}`;
-
-  if (imageError) {
-    return <FileIcon width={48} height={48} />;
-  }
-
-  return (
-    <Box
-      component="img"
-      src={imageUrl}
-      alt={file.name}
-      onError={() => setImageError(true)}
-      sx={{
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover',
-      }}
-    />
-  );
-};
 
 const FileManager = () => {
   const [currentPath, setCurrentPath] = useState<string>('');
@@ -185,6 +36,8 @@ const FileManager = () => {
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [lockedFolderToAccess, setLockedFolderToAccess] = useState<FileItem | null>(null);
+  const [slideshowOpen, setSlideshowOpen] = useState(false);
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const toast = useToast();
 
   const {
@@ -215,7 +68,6 @@ const FileManager = () => {
           handleNavigate(file.path);
         }
       } else {
-        // Flask's path converter handles URL encoding, but we need to encode each segment
         const pathSegments = file.path.split('/').map((segment) => encodeURIComponent(segment));
         const encodedPath = pathSegments.join('/');
         const url = `${createBaseUrl(BASE_URL)}/view/${encodedPath}`;
@@ -273,7 +125,7 @@ const FileManager = () => {
   );
 
   const handleUpload = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
+    async (event: ChangeEvent<HTMLInputElement>) => {
       const fileList = event.target.files;
       if (!fileList || fileList.length === 0) {
         return;
@@ -296,7 +148,6 @@ const FileManager = () => {
           status: 'error',
         });
       }
-      // Reset input
       event.target.value = '';
     },
     [currentPath, uploadFile, toast, refetch]
@@ -345,9 +196,10 @@ const FileManager = () => {
     [deleteFile, toast, refetch]
   );
 
-  const breadcrumbPaths = currentPath
-    ? ['', ...currentPath.split('/')]
-    : [''];
+  const breadcrumbPaths = useMemo(
+    () => (currentPath ? ['', ...currentPath.split('/')] : ['']),
+    [currentPath]
+  );
 
   const handleBreadcrumbClick = useCallback(
     (index: number) => {
@@ -361,6 +213,25 @@ const FileManager = () => {
     [breadcrumbPaths]
   );
 
+  const imageFiles = useMemo(
+    () => files?.filter((file) => file.type === 'file' && isImageFile(file.name)) || [],
+    [files]
+  );
+
+  const handleStartSlideshow = useCallback(() => {
+    if (imageFiles.length === 0) {
+      toast({message: 'No images in this folder', status: 'error'});
+      return;
+    }
+    setCurrentSlideIndex(0);
+    setSlideshowOpen(true);
+  }, [imageFiles.length, toast]);
+
+  const handlePasswordPrompt = useCallback((file: FileItem) => {
+    setLockedFolderToAccess(file);
+    setPasswordDialogOpen(true);
+  }, []);
+
   return (
     <Box p={2}>
       <Container
@@ -373,309 +244,76 @@ const FileManager = () => {
             <Button onClick={() => setUploadDialogOpen(true)}>
               <Text size="body">Upload</Text>
             </Button>
+            <Button onClick={handleStartSlideshow}>
+              <Text size="body">Slideshow</Text>
+            </Button>
           </Stack>
         }
       >
         <Stack spacing={2}>
-          <Breadcrumbs>
-            {breadcrumbPaths.map((part, index) => (
-              <Link
-                key={index}
-                component="button"
-                variant="body1"
-                onClick={() => handleBreadcrumbClick(index)}
-                sx={{
-                  cursor: 'pointer',
-                  color: 'inherit',
-                  textDecoration: 'none',
-                  '&:hover': {
-                    textDecoration: 'underline',
-                  },
-                }}
-              >
-                {index === 0 ? 'Root' : part}
-              </Link>
-            ))}
-          </Breadcrumbs>
+          <BreadcrumbNavigation paths={breadcrumbPaths} onNavigate={handleBreadcrumbClick} />
 
-          <RtkQueryGate checkFetching isLoading={isLoading}>
-            {listError && (listError as any)?.data?.locked && (
-              <Box textAlign="center" py={4}>
-                <Text size="body">This folder is locked</Text>
-                <Box mt={2}>
-                  <Button
-                    onClick={() => {
-                      const folderItem: FileItem = {
-                        name: currentPath.split('/').pop() || 'Folder',
-                        type: 'folder',
-                        path: currentPath,
-                        locked: true,
-                      };
-                      setLockedFolderToAccess(folderItem);
-                      setPasswordDialogOpen(true);
-                    }}
-                  >
-                    <Text size="body">Enter Password</Text>
-                  </Button>
-                </Box>
-              </Box>
-            )}
-            {!listError && files && files.length === 0 && (
-              <Box textAlign="center" py={4}>
-                <Text size="body">No files or folders</Text>
-              </Box>
-            )}
-            {!listError && files && files.length > 0 && (
-              <Grid2 container spacing={2}>
-                {files.map((file) => (
-                  <Grid2 key={file.path} size={{xs: 6, sm: 4, md: 3}}>
-                    <PillBox
-                      sx={{
-                        p: 2,
-                        cursor: 'pointer',
-                        position: 'relative',
-                        '&:hover': {
-                          opacity: 0.8,
-                        },
-                      }}
-                      onClick={() => handleFileClick(file)}
-                    >
-                      <Stack spacing={1} alignItems="center">
-                        <Box
-                          sx={{
-                            width: 48,
-                            height: 48,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            overflow: 'hidden',
-                            borderRadius: '4px',
-                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                          }}
-                        >
-                          {file.type === 'folder' ? (
-                            <FolderIcon width={48} height={48} />
-                          ) : isImageFile(file.name) ? (
-                            <ImageThumbnail file={file} />
-                          ) : (
-                            <FileIcon width={48} height={48} />
-                          )}
-                        </Box>
-                        <Box sx={{textAlign: 'center', wordBreak: 'break-word'}}>
-                          <Text size="small">{file.name}</Text>
-                        </Box>
-                        {file.type === 'file' && file.size && (
-                          <Box sx={{opacity: 0.7}}>
-                            <Text size="small">{formatFileSize(file.size)}</Text>
-                          </Box>
-                        )}
-                        <Stack
-                          direction="row"
-                          spacing={0.5}
-                          sx={{
-                            position: 'absolute',
-                            top: 4,
-                            right: 4,
-                          }}
-                        >
-                          {file.type === 'folder' && (
-                            <IconButton
-                              size="small"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleLockToggle(file, !file.locked);
-                              }}
-                              sx={{
-                                color: file.locked ? 'warning.main' : 'text.secondary',
-                                padding: '4px',
-                              }}
-                            >
-                              {file.locked ? (
-                                <LockIcon width={16} height={16} />
-                              ) : (
-                                <UnlockIcon width={16} height={16} />
-                              )}
-                            </IconButton>
-                          )}
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteConfirm(file);
-                            }}
-                            sx={{
-                              color: 'error.main',
-                              padding: '4px',
-                            }}
-                          >
-                            <DeleteIcon width={16} height={16} />
-                          </IconButton>
-                        </Stack>
-                      </Stack>
-                    </PillBox>
-                  </Grid2>
-                ))}
-              </Grid2>
-            )}
-          </RtkQueryGate>
+          <FileList
+            files={files}
+            isLoading={isLoading}
+            listError={listError}
+            currentPath={currentPath}
+            onFileClick={handleFileClick}
+            onDelete={setDeleteConfirm}
+            onLockToggle={handleLockToggle}
+            onPasswordPrompt={handlePasswordPrompt}
+          />
         </Stack>
       </Container>
 
-      {/* Upload Dialog */}
-      <Dialog
+      <UploadDialog
         open={uploadDialogOpen}
         onClose={() => setUploadDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Text size="large">Upload Files</Text>
-        </DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} py={2}>
-            <input
-              type="file"
-              multiple
-              onChange={handleUpload}
-              style={{display: 'none'}}
-              id="file-upload-input"
-            />
-            <Box component="label" htmlFor="file-upload-input" sx={{cursor: 'pointer', display: 'inline-block'}}>
-              <Button onClick={() => {}}>
-                <Text size="body">Choose Files</Text>
-              </Button>
-            </Box>
-            <Box sx={{opacity: 0.7}}>
-              <Text size="small">Maximum file size: 50 MB</Text>
-            </Box>
-          </Stack>
-        </DialogContent>
-      </Dialog>
+        onUpload={handleUpload}
+      />
 
-      {/* Create Folder Dialog */}
-      <Dialog
+      <CreateFolderDialog
         open={createFolderDialogOpen}
+        folderName={folderName}
         onClose={() => {
           setCreateFolderDialogOpen(false);
           setFolderName('');
         }}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Text size="large">Create Folder</Text>
-        </DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} py={2}>
-            <TextField
-              label="Folder Name"
-              value={folderName}
-              onChange={(e) => setFolderName(e.target.value)}
-              fullWidth
-              variant="filled"
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  handleCreateFolder();
-                }
-              }}
-            />
-            <Stack direction="row" spacing={2} justifyContent="flex-end">
-              <Button
-                onClick={() => {
-                  setCreateFolderDialogOpen(false);
-                  setFolderName('');
-                }}
-              >
-                <Text size="body">Cancel</Text>
-              </Button>
-              <Button onClick={handleCreateFolder}>
-                <Text size="body">Create</Text>
-              </Button>
-            </Stack>
-          </Stack>
-        </DialogContent>
-      </Dialog>
+        onFolderNameChange={setFolderName}
+        onCreate={handleCreateFolder}
+      />
 
-      {/* Password Dialog */}
-      <Dialog
+      <PasswordDialog
         open={passwordDialogOpen}
+        password={password}
+        folder={lockedFolderToAccess}
         onClose={() => {
           setPasswordDialogOpen(false);
           setPassword('');
           setLockedFolderToAccess(null);
         }}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Text size="large">Enter Password</Text>
-        </DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} py={2}>
-            <Text size="body">
-              The folder "{lockedFolderToAccess?.name}" is locked. Please enter the password to
-              access it.
-            </Text>
-            <TextField
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              fullWidth
-              variant="filled"
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  handlePasswordSubmit();
-                }
-              }}
-            />
-            <Stack direction="row" spacing={2} justifyContent="flex-end">
-              <Button
-                onClick={() => {
-                  setPasswordDialogOpen(false);
-                  setPassword('');
-                  setLockedFolderToAccess(null);
-                }}
-              >
-                <Text size="body">Cancel</Text>
-              </Button>
-              <Button onClick={handlePasswordSubmit}>
-                <Text size="body">Submit</Text>
-              </Button>
-            </Stack>
-          </Stack>
-        </DialogContent>
-      </Dialog>
+        onPasswordChange={setPassword}
+        onSubmit={handlePasswordSubmit}
+      />
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={!!deleteConfirm}
+      <Slideshow
+        open={slideshowOpen}
+        images={imageFiles}
+        currentIndex={currentSlideIndex}
+        onClose={() => {
+          setSlideshowOpen(false);
+          setCurrentSlideIndex(0);
+        }}
+        onIndexChange={setCurrentSlideIndex}
+      />
+
+      <DeleteConfirmDialog
+        file={deleteConfirm}
         onClose={() => setDeleteConfirm(null)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Text size="large">Delete {deleteConfirm?.type === 'folder' ? 'Folder' : 'File'}</Text>
-        </DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} py={2}>
-            <Text size="body">
-              Are you sure you want to delete "{deleteConfirm?.name}"? This action cannot be undone.
-            </Text>
-            <Stack direction="row" spacing={2} justifyContent="flex-end">
-              <Button onClick={() => setDeleteConfirm(null)}>
-                <Text size="body">Cancel</Text>
-              </Button>
-              <Button onClick={() => deleteConfirm && handleDelete(deleteConfirm)}>
-                <Text size="body">Delete</Text>
-              </Button>
-            </Stack>
-          </Stack>
-        </DialogContent>
-      </Dialog>
+        onConfirm={() => deleteConfirm && handleDelete(deleteConfirm)}
+      />
     </Box>
   );
 };
 
 export default FileManager;
-

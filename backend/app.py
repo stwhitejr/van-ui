@@ -148,6 +148,10 @@ def listFiles():
 
         items = []
         for item in os.listdir(full_path):
+            # Filter out the locked folders configuration file
+            if item == ".locked_folders.json":
+                continue
+
             item_path = os.path.join(full_path, item)
             relative_path = (
                 os.path.join(sanitized_path, item) if sanitized_path else item
