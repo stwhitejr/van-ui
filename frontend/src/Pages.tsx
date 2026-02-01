@@ -8,6 +8,7 @@ import Text from '@root/components/Text';
 import LogoColor from '@root/assets/images/logo3.png';
 import {theme} from '@root/App';
 import Battery from '@root/features/battery/Battery';
+import FileManager from '@root/features/files/FileManager';
 import {useKillAppMutation} from './api';
 
 const Pages = () => {
@@ -79,6 +80,12 @@ const Pages = () => {
             >
               <Text size="body">LEDs</Text>
             </Button>
+            <Button
+              isActive={pageNumber === 3}
+              onClick={() => setPageNumber(3)}
+            >
+              <Text size="body">Files</Text>
+            </Button>
             <Button isActive={pageNumber === 2} onClick={() => killApp()}>
               <Text size="body">Close</Text>
             </Button>
@@ -122,6 +129,7 @@ const Pages = () => {
           </Grid2>
         )}
         {pageNumber === 2 && <LedController />}
+        {pageNumber === 3 && <FileManager />}
       </Box>
     </Box>
   );
