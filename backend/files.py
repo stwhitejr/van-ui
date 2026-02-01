@@ -1,10 +1,12 @@
 import os
 import shutil
+import json
 from pathlib import Path
 from urllib.parse import unquote
 
 UPLOAD_DIR = "/home/steve/uploads"
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
+LOCKED_FOLDERS_FILE = os.path.join(UPLOAD_DIR, ".locked_folders.json")
 
 
 def ensure_upload_dir():
@@ -69,6 +71,58 @@ def is_safe_filename(filename):
     if not filename:
         return False
     return "/" not in filename and "\\" not in filename and ".." not in filename
+
+
+def load_locked_folders():
+    """Load the list of locked folders from JSON file."""
+    if os.path.exists(LOCKED_FOLDERS_FILE):
+        try:
+            with open(LOCKED_FOLDERS_FILE, "r") as f:
+                return set(json.load(f))
+        except Exception:
+            return set()
+    return set()
+
+
+def save_locked_folders(locked_folders):
+    """Save the list of locked folders to JSON file."""
+    ensure_upload_dir()
+    try:
+        with open(LOCKED_FOLDERS_FILE, "w") as f:
+            json.dump(list(locked_folders), f)
+    except Exception as e:
+        print(f"Error saving locked folders: {e}")
+
+
+def is_folder_locked(folder_path):
+    """Check if a folder is locked."""
+    locked_folders = load_locked_folders()
+    sanitized = sanitize_path(folder_path)
+    if sanitized is None:
+        return False
+    return sanitized in locked_folders
+
+
+def lock_folder(folder_path):
+    """Lock a folder."""
+    locked_folders = load_locked_folders()
+    sanitized = sanitize_path(folder_path)
+    if sanitized is None:
+        return False
+    locked_folders.add(sanitized)
+    save_locked_folders(locked_folders)
+    return True
+
+
+def unlock_folder(folder_path):
+    """Unlock a folder."""
+    locked_folders = load_locked_folders()
+    sanitized = sanitize_path(folder_path)
+    if sanitized is None:
+        return False
+    locked_folders.discard(sanitized)
+    save_locked_folders(locked_folders)
+    return True
 
 
 # Initialize upload directory on module import

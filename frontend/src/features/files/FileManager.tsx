@@ -20,6 +20,9 @@ import {
   useUploadFileMutation,
   useCreateFolderMutation,
   useDeleteFileMutation,
+  useAuthenticateFolderMutation,
+  useLockFolderMutation,
+  useUnlockFolderMutation,
   FileItem,
 } from './api';
 import {createBaseUrl} from '@root/util/api';
@@ -76,6 +79,40 @@ const DeleteIcon = ({width = 20, height = 20}: DeleteIconProps) => (
     fill="currentColor"
   >
     <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
+  </svg>
+);
+
+interface LockIconProps {
+  width?: number;
+  height?: number;
+}
+
+const LockIcon = ({width = 20, height = 20}: LockIconProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="currentColor"
+  >
+    <path d="M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6C4.89,22 4,21.1 4,20V10C4,8.89 4.89,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" />
+  </svg>
+);
+
+interface UnlockIconProps {
+  width?: number;
+  height?: number;
+}
+
+const UnlockIcon = ({width = 20, height = 20}: UnlockIconProps) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={width}
+    height={height}
+    viewBox="0 0 24 24"
+    fill="currentColor"
+  >
+    <path d="M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6C4.89,22 4,21.1 4,20V10C4,8.89 4.89,8 6,8H15V6A3,3 0 0,0 9,6H7A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18Z" />
   </svg>
 );
 
@@ -145,33 +182,95 @@ const FileManager = () => {
   const [createFolderDialogOpen, setCreateFolderDialogOpen] = useState(false);
   const [folderName, setFolderName] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<FileItem | null>(null);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [password, setPassword] = useState('');
+  const [lockedFolderToAccess, setLockedFolderToAccess] = useState<FileItem | null>(null);
   const toast = useToast();
 
   const {
     data: files,
     isLoading,
+    error: listError,
     refetch,
   } = useListFilesQuery(currentPath || undefined);
 
   const [uploadFile] = useUploadFileMutation();
   const [createFolder] = useCreateFolderMutation();
   const [deleteFile] = useDeleteFileMutation();
+  const [authenticateFolder] = useAuthenticateFolderMutation();
+  const [lockFolder] = useLockFolderMutation();
+  const [unlockFolder] = useUnlockFolderMutation();
 
   const handleNavigate = useCallback((path: string) => {
     setCurrentPath(path);
   }, []);
 
-  const handleFileClick = useCallback((file: FileItem) => {
-    if (file.type === 'folder') {
-      handleNavigate(file.path);
-    } else {
-      // Flask's path converter handles URL encoding, but we need to encode each segment
-      const pathSegments = file.path.split('/').map(segment => encodeURIComponent(segment));
-      const encodedPath = pathSegments.join('/');
-      const url = `${createBaseUrl(BASE_URL)}/view/${encodedPath}`;
-      window.open(url, '_blank');
+  const handleFileClick = useCallback(
+    (file: FileItem) => {
+      if (file.type === 'folder') {
+        if (file.locked) {
+          setLockedFolderToAccess(file);
+          setPasswordDialogOpen(true);
+        } else {
+          handleNavigate(file.path);
+        }
+      } else {
+        // Flask's path converter handles URL encoding, but we need to encode each segment
+        const pathSegments = file.path.split('/').map((segment) => encodeURIComponent(segment));
+        const encodedPath = pathSegments.join('/');
+        const url = `${createBaseUrl(BASE_URL)}/view/${encodedPath}`;
+        window.open(url, '_blank');
+      }
+    },
+    [handleNavigate]
+  );
+
+  const handlePasswordSubmit = useCallback(async () => {
+    if (!lockedFolderToAccess || !password.trim()) {
+      toast({message: 'Please enter a password', status: 'error'});
+      return;
     }
-  }, [handleNavigate]);
+
+    try {
+      await authenticateFolder({
+        password: password.trim(),
+        path: lockedFolderToAccess.path,
+      }).unwrap();
+      toast({message: 'Access granted', status: 'success'});
+      setPasswordDialogOpen(false);
+      setPassword('');
+      setLockedFolderToAccess(null);
+      handleNavigate(lockedFolderToAccess.path);
+      refetch();
+    } catch (error: any) {
+      toast({
+        message: error?.data?.error || 'Incorrect password',
+        status: 'error',
+      });
+      setPassword('');
+    }
+  }, [lockedFolderToAccess, password, authenticateFolder, toast, handleNavigate, refetch]);
+
+  const handleLockToggle = useCallback(
+    async (file: FileItem, lock: boolean) => {
+      try {
+        if (lock) {
+          await lockFolder({path: file.path}).unwrap();
+          toast({message: 'Folder locked', status: 'success'});
+        } else {
+          await unlockFolder({path: file.path}).unwrap();
+          toast({message: 'Folder unlocked', status: 'success'});
+        }
+        refetch();
+      } catch (error: any) {
+        toast({
+          message: error?.data?.error || `Failed to ${lock ? 'lock' : 'unlock'} folder`,
+          status: 'error',
+        });
+      }
+    },
+    [lockFolder, unlockFolder, toast, refetch]
+  );
 
   const handleUpload = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -300,12 +399,33 @@ const FileManager = () => {
           </Breadcrumbs>
 
           <RtkQueryGate checkFetching isLoading={isLoading}>
-            {files && files.length === 0 && (
+            {listError && (listError as any)?.data?.locked && (
+              <Box textAlign="center" py={4}>
+                <Text size="body">This folder is locked</Text>
+                <Box mt={2}>
+                  <Button
+                    onClick={() => {
+                      const folderItem: FileItem = {
+                        name: currentPath.split('/').pop() || 'Folder',
+                        type: 'folder',
+                        path: currentPath,
+                        locked: true,
+                      };
+                      setLockedFolderToAccess(folderItem);
+                      setPasswordDialogOpen(true);
+                    }}
+                  >
+                    <Text size="body">Enter Password</Text>
+                  </Button>
+                </Box>
+              </Box>
+            )}
+            {!listError && files && files.length === 0 && (
               <Box textAlign="center" py={4}>
                 <Text size="body">No files or folders</Text>
               </Box>
             )}
-            {files && files.length > 0 && (
+            {!listError && files && files.length > 0 && (
               <Grid2 container spacing={2}>
                 {files.map((file) => (
                   <Grid2 key={file.path} size={{xs: 6, sm: 4, md: 3}}>
@@ -349,21 +469,48 @@ const FileManager = () => {
                             <Text size="small">{formatFileSize(file.size)}</Text>
                           </Box>
                         )}
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteConfirm(file);
-                          }}
+                        <Stack
+                          direction="row"
+                          spacing={0.5}
                           sx={{
                             position: 'absolute',
                             top: 4,
                             right: 4,
-                            color: 'error.main',
                           }}
                         >
-                          <DeleteIcon width={18} height={18} />
-                        </IconButton>
+                          {file.type === 'folder' && (
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleLockToggle(file, !file.locked);
+                              }}
+                              sx={{
+                                color: file.locked ? 'warning.main' : 'text.secondary',
+                                padding: '4px',
+                              }}
+                            >
+                              {file.locked ? (
+                                <LockIcon width={16} height={16} />
+                              ) : (
+                                <UnlockIcon width={16} height={16} />
+                              )}
+                            </IconButton>
+                          )}
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteConfirm(file);
+                            }}
+                            sx={{
+                              color: 'error.main',
+                              padding: '4px',
+                            }}
+                          >
+                            <DeleteIcon width={16} height={16} />
+                          </IconButton>
+                        </Stack>
                       </Stack>
                     </PillBox>
                   </Grid2>
@@ -443,6 +590,57 @@ const FileManager = () => {
               </Button>
               <Button onClick={handleCreateFolder}>
                 <Text size="body">Create</Text>
+              </Button>
+            </Stack>
+          </Stack>
+        </DialogContent>
+      </Dialog>
+
+      {/* Password Dialog */}
+      <Dialog
+        open={passwordDialogOpen}
+        onClose={() => {
+          setPasswordDialogOpen(false);
+          setPassword('');
+          setLockedFolderToAccess(null);
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Text size="large">Enter Password</Text>
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} py={2}>
+            <Text size="body">
+              The folder "{lockedFolderToAccess?.name}" is locked. Please enter the password to
+              access it.
+            </Text>
+            <TextField
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              fullWidth
+              variant="filled"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  handlePasswordSubmit();
+                }
+              }}
+            />
+            <Stack direction="row" spacing={2} justifyContent="flex-end">
+              <Button
+                onClick={() => {
+                  setPasswordDialogOpen(false);
+                  setPassword('');
+                  setLockedFolderToAccess(null);
+                }}
+              >
+                <Text size="body">Cancel</Text>
+              </Button>
+              <Button onClick={handlePasswordSubmit}>
+                <Text size="body">Submit</Text>
               </Button>
             </Stack>
           </Stack>

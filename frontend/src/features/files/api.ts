@@ -9,6 +9,7 @@ export interface FileItem {
   size?: number;
   modified?: string;
   path: string;
+  locked?: boolean;
 }
 
 export interface UploadFileRequest {
@@ -65,6 +66,27 @@ const filesApi = createApi({
         body,
       }),
     }),
+    authenticateFolder: build.mutation<{success: boolean}, {password: string; path: string}>({
+      query: (body) => ({
+        url: `/authenticate`,
+        method: 'post',
+        body,
+      }),
+    }),
+    lockFolder: build.mutation<{success: boolean}, {path: string}>({
+      query: (body) => ({
+        url: `/lock`,
+        method: 'post',
+        body,
+      }),
+    }),
+    unlockFolder: build.mutation<{success: boolean}, {path: string}>({
+      query: (body) => ({
+        url: `/unlock`,
+        method: 'post',
+        body,
+      }),
+    }),
   }),
 });
 
@@ -75,5 +97,8 @@ export const {
   useUploadFileMutation,
   useCreateFolderMutation,
   useDeleteFileMutation,
+  useAuthenticateFolderMutation,
+  useLockFolderMutation,
+  useUnlockFolderMutation,
 } = filesApi;
 
