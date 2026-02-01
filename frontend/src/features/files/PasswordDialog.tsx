@@ -8,6 +8,7 @@ interface PasswordDialogProps {
   open: boolean;
   password: string;
   folder: FileItem | null;
+  isUnlock?: boolean;
   onClose: () => void;
   onPasswordChange: (password: string) => void;
   onSubmit: () => void;
@@ -17,6 +18,7 @@ export const PasswordDialog = ({
   open,
   password,
   folder,
+  isUnlock = false,
   onClose,
   onPasswordChange,
   onSubmit,
@@ -35,7 +37,9 @@ export const PasswordDialog = ({
       <DialogContent>
         <Stack spacing={2} py={2}>
           <Text size="body">
-            The folder "{folder?.name}" is locked. Please enter the password to access it.
+            {isUnlock
+              ? `The folder "${folder?.name}" is locked. Please enter the password to unlock it.`
+              : `The folder "${folder?.name}" is locked. Please enter the password to access it.`}
           </Text>
           <TextField
             label="Password"

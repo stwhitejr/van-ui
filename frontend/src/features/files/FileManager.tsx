@@ -36,6 +36,7 @@ const FileManager = () => {
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [lockedFolderToAccess, setLockedFolderToAccess] = useState<FileItem | null>(null);
+  const [unlockTarget, setUnlockTarget] = useState<FileItem | null>(null);
   const [slideshowOpen, setSlideshowOpen] = useState(false);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const toast = useToast();
@@ -84,15 +85,30 @@ const FileManager = () => {
     }
 
     try {
-      await authenticateFolder({
-        password: password.trim(),
-        path: lockedFolderToAccess.path,
-      }).unwrap();
-      toast({message: 'Access granted', status: 'success'});
+      // If we're unlocking, authenticate first then unlock
+      if (unlockTarget) {
+        await authenticateFolder({
+          password: password.trim(),
+          path: lockedFolderToAccess.path,
+        }).unwrap();
+
+        // Now unlock the folder
+        await unlockFolder({path: lockedFolderToAccess.path}).unwrap();
+        toast({message: 'Folder unlocked', status: 'success'});
+        setUnlockTarget(null);
+      } else {
+        // Regular folder access
+        await authenticateFolder({
+          password: password.trim(),
+          path: lockedFolderToAccess.path,
+        }).unwrap();
+        toast({message: 'Access granted', status: 'success'});
+        handleNavigate(lockedFolderToAccess.path);
+      }
+
       setPasswordDialogOpen(false);
       setPassword('');
       setLockedFolderToAccess(null);
-      handleNavigate(lockedFolderToAccess.path);
       refetch();
     } catch (error: any) {
       toast({
@@ -101,27 +117,39 @@ const FileManager = () => {
       });
       setPassword('');
     }
-  }, [lockedFolderToAccess, password, authenticateFolder, toast, handleNavigate, refetch]);
+  }, [
+    lockedFolderToAccess,
+    unlockTarget,
+    password,
+    authenticateFolder,
+    unlockFolder,
+    toast,
+    handleNavigate,
+    refetch,
+  ]);
 
   const handleLockToggle = useCallback(
     async (file: FileItem, lock: boolean) => {
-      try {
-        if (lock) {
+      if (lock) {
+        // Locking doesn't require password
+        try {
           await lockFolder({path: file.path}).unwrap();
           toast({message: 'Folder locked', status: 'success'});
-        } else {
-          await unlockFolder({path: file.path}).unwrap();
-          toast({message: 'Folder unlocked', status: 'success'});
+          refetch();
+        } catch (error: any) {
+          toast({
+            message: error?.data?.error || 'Failed to lock folder',
+            status: 'error',
+          });
         }
-        refetch();
-      } catch (error: any) {
-        toast({
-          message: error?.data?.error || `Failed to ${lock ? 'lock' : 'unlock'} folder`,
-          status: 'error',
-        });
+      } else {
+        // Unlocking requires password - prompt for it
+        setUnlockTarget(file);
+        setLockedFolderToAccess(file);
+        setPasswordDialogOpen(true);
       }
     },
-    [lockFolder, unlockFolder, toast, refetch]
+    [lockFolder, toast, refetch]
   );
 
   const handleUpload = useCallback(
@@ -287,10 +315,12 @@ const FileManager = () => {
         open={passwordDialogOpen}
         password={password}
         folder={lockedFolderToAccess}
+        isUnlock={!!unlockTarget}
         onClose={() => {
           setPasswordDialogOpen(false);
           setPassword('');
           setLockedFolderToAccess(null);
+          setUnlockTarget(null);
         }}
         onPasswordChange={setPassword}
         onSubmit={handlePasswordSubmit}
