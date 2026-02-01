@@ -98,6 +98,47 @@ const formatFileSize = (bytes?: number): string => {
   })();
 };
 
+const isImageFile = (filename: string): boolean => {
+  const imageExtensions = [
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.gif',
+    '.bmp',
+    '.webp',
+    '.svg',
+    '.ico',
+  ];
+  const lowerFilename = filename.toLowerCase();
+  return imageExtensions.some((ext) => lowerFilename.endsWith(ext));
+};
+
+const ImageThumbnail = ({file}: {file: FileItem}) => {
+  const [imageError, setImageError] = useState(false);
+  const imageUrl = `${createBaseUrl(BASE_URL)}/view/${file.path
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/')}`;
+
+  if (imageError) {
+    return <FileIcon width={48} height={48} />;
+  }
+
+  return (
+    <Box
+      component="img"
+      src={imageUrl}
+      alt={file.name}
+      onError={() => setImageError(true)}
+      sx={{
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+      }}
+    />
+  );
+};
+
 const FileManager = () => {
   const [currentPath, setCurrentPath] = useState<string>('');
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
@@ -280,9 +321,22 @@ const FileManager = () => {
                       onClick={() => handleFileClick(file)}
                     >
                       <Stack spacing={1} alignItems="center">
-                        <Box>
+                        <Box
+                          sx={{
+                            width: 48,
+                            height: 48,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            overflow: 'hidden',
+                            borderRadius: '4px',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                          }}
+                        >
                           {file.type === 'folder' ? (
                             <FolderIcon width={48} height={48} />
+                          ) : isImageFile(file.name) ? (
+                            <ImageThumbnail file={file} />
                           ) : (
                             <FileIcon width={48} height={48} />
                           )}
@@ -339,11 +393,11 @@ const FileManager = () => {
               style={{display: 'none'}}
               id="file-upload-input"
             />
-            <label htmlFor="file-upload-input">
-              <Button component="span">
+            <Box component="label" htmlFor="file-upload-input" sx={{cursor: 'pointer', display: 'inline-block'}}>
+              <Button onClick={() => {}}>
                 <Text size="body">Choose Files</Text>
               </Button>
-            </label>
+            </Box>
             <Box sx={{opacity: 0.7}}>
               <Text size="small">Maximum file size: 50 MB</Text>
             </Box>

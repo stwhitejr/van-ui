@@ -18,6 +18,7 @@ const PillBox = ({
   gradiantDirection = '90deg',
   gradiantVariation = 'default',
   children,
+  sx = {},
   ...props
 }: PillBoxProps) => {
   return (
@@ -34,8 +35,9 @@ const PillBox = ({
               },
             }
           : {}),
-        ...props.sx,
+        ...sx,
       }}
+      {...props}
     >
       {children}
     </Box>
