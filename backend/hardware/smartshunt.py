@@ -25,28 +25,42 @@ converter_map = {
 def smartshunt(port="/dev/ttyUSB0"):
     import serial
 
-    port = serial.Serial(port, baudrate=19200, timeout=1)
+    ser = serial.Serial(port, baudrate=19200, timeout=1)
     data = {}
+    max_retries = 100  # Maximum number of lines to read before giving up
+    retry_count = 0
 
-    while True:
-        try:
-            line = port.readline().decode("utf-8", errors="ignore").strip()
-            if not line or "\t" not in line:
+    try:
+        while retry_count < max_retries:
+            try:
+                line = ser.readline().decode("utf-8", errors="ignore").strip()
+                if not line or "\t" not in line:
+                    retry_count += 1
+                    continue
+                key, value = line.split("\t", 1)
+
+                converter = converter_map.get(key)
+                if converter:
+                    value = converter(value)
+
+                data[readable.get(key) or key] = value
+
+                # End of a frame is usually marked by 'Checksum'
+                if key == "Checksum":
+                    break
+                retry_count += 1
+            except serial.SerialException as e:
+                print(f"Serial error reading line: {e}")
+                break  # Break on serial errors (device disconnected, etc.)
+            except Exception as e:
+                print(f"Error reading line: {e}")
+                retry_count += 1
                 continue
-            key, value = line.split("\t", 1)
 
-            converter = converter_map.get(key)
-            if converter:
-                value = converter(value)
-
-            data[readable.get(key) or key] = value
-
-            # End of a frame is usually marked by 'Checksum'
-            if key == "Checksum":
-                break
-        except Exception as e:
-            print(f"Error reading line: {e}")
-            continue
+        if retry_count >= max_retries:
+            print(f"Warning: Reached maximum retries ({max_retries}) without receiving Checksum")
+    finally:
+        ser.close()  # Always close the serial port
 
     return data
 
