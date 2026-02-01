@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, send_from_directory, request, send_file
 from hardware import (
     LevelSensor,
     InverterToggle,
@@ -8,6 +8,17 @@ from hardware import (
 )
 from dotenv import load_dotenv
 import subprocess
+import os
+import shutil
+from datetime import datetime
+from files import (
+    UPLOAD_DIR,
+    MAX_FILE_SIZE,
+    get_full_path,
+    sanitize_path,
+    is_safe_filename,
+    ensure_upload_dir,
+)
 
 
 load_dotenv()
@@ -54,6 +65,185 @@ def smartshunData():
 def levelsensorData():
     data = LevelSensor()
     return jsonify(data)
+
+
+# File Management API
+@app.route("/files/upload", methods=["POST"])
+def uploadFile():
+    try:
+        if "file" not in request.files:
+            return jsonify({"error": "No file provided"}), 400
+
+        file = request.files["file"]
+        if file.filename == "":
+            return jsonify({"error": "No file selected"}), 400
+
+        if not is_safe_filename(file.filename):
+            return jsonify({"error": "Invalid filename"}), 400
+
+        # Get folder path from form data
+        folder_path = request.form.get("folder", "")
+        sanitized_folder = sanitize_path(folder_path)
+        if sanitized_folder is None:
+            return jsonify({"error": "Invalid folder path"}), 400
+
+        # Get full path for the folder
+        folder_full_path = get_full_path(sanitized_folder)
+        if folder_full_path is None:
+            return jsonify({"error": "Invalid folder path"}), 400
+
+        # Ensure folder exists
+        os.makedirs(folder_full_path, exist_ok=True)
+
+        # Check file size
+        file.seek(0, os.SEEK_END)
+        file_size = file.tell()
+        file.seek(0)
+
+        if file_size > MAX_FILE_SIZE:
+            return jsonify({"error": f"File size exceeds {MAX_FILE_SIZE / (1024*1024)}MB limit"}), 400
+
+        # Save file
+        file_path = os.path.join(folder_full_path, file.filename)
+        file.save(file_path)
+
+        return jsonify({"success": True, "filename": file.filename, "path": sanitized_folder})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/files/list", methods=["GET"])
+def listFiles():
+    try:
+        path = request.args.get("path", "")
+        sanitized_path = sanitize_path(path)
+        if sanitized_path is None:
+            return jsonify({"error": "Invalid path"}), 400
+
+        full_path = get_full_path(sanitized_path)
+        if full_path is None:
+            return jsonify({"error": "Invalid path"}), 400
+
+        if not os.path.exists(full_path):
+            return jsonify([])
+
+        items = []
+        for item in os.listdir(full_path):
+            item_path = os.path.join(full_path, item)
+            relative_path = os.path.join(sanitized_path, item) if sanitized_path else item
+
+            if os.path.isdir(item_path):
+                items.append({
+                    "name": item,
+                    "type": "folder",
+                    "path": relative_path,
+                })
+            else:
+                stat = os.stat(item_path)
+                items.append({
+                    "name": item,
+                    "type": "file",
+                    "size": stat.st_size,
+                    "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                    "path": relative_path,
+                })
+
+        # Sort: folders first, then files, both alphabetically
+        items.sort(key=lambda x: (x["type"] != "folder", x["name"].lower()))
+
+        return jsonify(items)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/files/view/<path:filepath>", methods=["GET"])
+def viewFile(filepath):
+    try:
+        sanitized_path = sanitize_path(filepath)
+        if sanitized_path is None:
+            return jsonify({"error": "Invalid path"}), 400
+
+        full_path = get_full_path(sanitized_path)
+        if full_path is None:
+            return jsonify({"error": "Invalid path"}), 400
+
+        if not os.path.exists(full_path):
+            return jsonify({"error": "File not found"}), 404
+
+        if os.path.isdir(full_path):
+            return jsonify({"error": "Path is a directory"}), 400
+
+        return send_file(full_path)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/files/folder", methods=["POST"])
+def createFolder():
+    try:
+        data = request.get_json()
+        if not data or "name" not in data:
+            return jsonify({"error": "Folder name required"}), 400
+
+        folder_name = data["name"]
+        if not is_safe_filename(folder_name):
+            return jsonify({"error": "Invalid folder name"}), 400
+
+        current_path = data.get("path", "")
+        sanitized_path = sanitize_path(current_path)
+        if sanitized_path is None:
+            return jsonify({"error": "Invalid path"}), 400
+
+        # Create full path for new folder
+        if sanitized_path:
+            new_folder_path = sanitized_path + "/" + folder_name
+        else:
+            new_folder_path = folder_name
+
+        sanitized_new_path = sanitize_path(new_folder_path)
+        if sanitized_new_path is None:
+            return jsonify({"error": "Invalid folder path"}), 400
+
+        full_path = get_full_path(sanitized_new_path)
+        if full_path is None:
+            return jsonify({"error": "Invalid folder path"}), 400
+
+        # Create folder
+        os.makedirs(full_path, exist_ok=True)
+
+        return jsonify({"success": True, "path": sanitized_new_path})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/files/delete", methods=["DELETE"])
+def deleteFile():
+    try:
+        data = request.get_json()
+        if not data or "path" not in data:
+            return jsonify({"error": "Path required"}), 400
+
+        path = data["path"]
+        sanitized_path = sanitize_path(path)
+        if sanitized_path is None:
+            return jsonify({"error": "Invalid path"}), 400
+
+        full_path = get_full_path(sanitized_path)
+        if full_path is None:
+            return jsonify({"error": "Invalid path"}), 400
+
+        if not os.path.exists(full_path):
+            return jsonify({"error": "Path not found"}), 404
+
+        # Delete file or folder
+        if os.path.isdir(full_path):
+            shutil.rmtree(full_path)
+        else:
+            os.remove(full_path)
+
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 # Frontend
